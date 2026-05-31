@@ -4,6 +4,7 @@ from typing import Protocol
 from slugify import slugify
 
 from mediamark.config import AppConfig
+from mediamark.collections import write_collection_indexes
 from mediamark.getnote.budget import GetnoteBudget, _duration_minutes
 from mediamark.markdown.renderer import render_markdown
 from mediamark.models import (
@@ -54,21 +55,51 @@ def video_key(video: VideoItem) -> str:
     return f"{video.bvid or video.url}:{video.part_index}"
 
 
-def output_path_for(config: AppConfig, video: VideoItem) -> Path:
+def _slug(value: object, fallback: str) -> str:
+    if value is None:
+        return fallback
+    return slugify(str(value), allow_unicode=True) or fallback
+
+
+def _path_template_context(video: VideoItem) -> dict[str, object]:
     published_at = video.published_at.date().isoformat() if video.published_at else "unknown-date"
-    title = slugify(video.title, allow_unicode=True) or "untitled"
-    part_title = slugify(video.part_title or "", allow_unicode=True) or f"p{video.part_index}"
+    content_id = video.bvid or video.external_id or "unknown-id"
+    return {
+        "platform": _slug(video.platform, "unknown-platform"),
+        "owner": _slug(video.owner_name, "unknown-owner"),
+        "collection": _slug(video.collection, "uncategorized"),
+        "published_at": published_at,
+        "title": _slug(video.title, "untitled"),
+        "bvid": video.bvid or "unknown-bvid",
+        "id": content_id,
+        "external_id": video.external_id or "unknown-external-id",
+        "part_index": video.part_index,
+        "part_title": _slug(video.part_title, f"p{video.part_index}"),
+    }
+
+
+def _safe_relative_template_path(rendered: str) -> Path:
+    parts = [
+        part
+        for part in Path(rendered).parts
+        if part not in {"", ".", "..", Path(rendered).anchor}
+    ]
+    return Path(*parts) if parts else Path()
+
+
+def output_path_for(config: AppConfig, video: VideoItem) -> Path:
+    context = _path_template_context(video)
     filename = config.markdown.filename_template.format(
-        published_at=published_at,
-        title=title,
-        bvid=video.bvid or video.external_id or "unknown-bvid",
-        part_index=video.part_index,
-        part_title=part_title,
+        **context,
     )
     if config.markdown.filename_template == DEFAULT_FILENAME_TEMPLATE and video.part_index > 1:
         stem, suffix = Path(filename).stem, Path(filename).suffix
         filename = f"{stem}-p{video.part_index}{suffix}"
-    return config.output_dir / filename
+    directory_template = config.output.directory_template.strip()
+    if not directory_template:
+        return config.output_dir / filename
+    directory = _safe_relative_template_path(directory_template.format(**context))
+    return config.output_dir / directory / filename
 
 
 def _classify_error(exc: Exception) -> ErrorCode:
@@ -126,16 +157,23 @@ class Pipeline:
             selected_videos = selected_videos[:limit]
 
         completed_keys = self.manifest.completed_keys() if skip_existing else set()
+        seen_keys: set[str] = set()
         results: list[ProcessResult] = []
         for video in selected_videos:
             key = video_key(video)
+            if self.config.archive.dedupe and key in seen_keys:
+                self.manifest.record_skipped(key=key, url=video.url, reason="duplicate input")
+                results.append(ProcessResult(video=video, status="skipped"))
+                continue
             if skip_existing and key in completed_keys:
                 self.manifest.record_skipped(key=key, url=video.url, reason="already completed")
                 results.append(ProcessResult(video=video, status="skipped"))
+                seen_keys.add(key)
                 continue
 
             attempt = self.manifest.next_attempt(key) if hasattr(self.manifest, "next_attempt") else 1
             self.manifest.record_pending(key=key, url=video.url)
+            seen_keys.add(key)
             try:
                 result = await self._process_one(video)
                 if skip_existing and result.status == "done":
@@ -162,6 +200,8 @@ class Pipeline:
                         error_code=error_code,
                     )
                 )
+        if self.config.archive.write_collection_index:
+            write_collection_indexes(self.config, results)
         return results
 
     async def estimate_getnote_need(

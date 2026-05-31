@@ -457,6 +457,20 @@ def test_expand_csv_input_respects_douyin_platform(tmp_path):
     assert result[0].tags == ["short"]
 
 
+def test_expand_input_supports_xiaohongshu_single_url():
+    from mediamark.cli import _expand_input
+
+    class FakeClient:
+        pass
+
+    result = asyncio.run(
+        _expand_input(FakeClient(), "https://www.xiaohongshu.com/explore/abc123")
+    )
+
+    assert result[0].platform == "xiaohongshu"
+    assert result[0].external_id == "abc123"
+
+
 def test_expand_input_rejects_directory_input(tmp_path):
     from mediamark.cli import _expand_input
 
@@ -634,6 +648,7 @@ def test_platforms_command_lists_capabilities():
     assert result.exit_code == 0
     assert "bilibili" in result.output
     assert "douyin" in result.output
+    assert "xiaohongshu" in result.output
     assert "single_video" in result.output
 
 
@@ -644,6 +659,7 @@ def test_platforms_command_supports_json_output():
 
     assert result.exit_code == 0
     assert '"platform": "douyin"' in result.output
+    assert '"platform": "xiaohongshu"' in result.output
 
 
 def test_doctor_reports_getnote_and_paths(monkeypatch, tmp_path):

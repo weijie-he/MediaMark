@@ -1,6 +1,16 @@
 output_dir: "./output/transcripts"
 manifest_path: "./data/manifest.jsonl"
 
+output:
+  # Available fields: platform, owner, collection, published_at, title, bvid, id, external_id, part_index, part_title.
+  # Example: "{platform}/{collection}"
+  directory_template: ""
+
+archive:
+  dedupe: true
+  write_collection_index: true
+  collection_index_dir: "_collections"
+
 bilibili:
   cookie_file: "~/.config/mediamark/bilibili.cookie"
   prefer_ai_subtitle: true
@@ -29,6 +39,6 @@ limits:
   limit: null
 
 markdown:
-  # Available fields: published_at, title, bvid, part_index, part_title.
+  # Available fields: platform, owner, collection, published_at, title, bvid, id, external_id, part_index, part_title.
   # The default template appends -p{part_index} automatically for multi-part videos after P1.
   filename_template: "{published_at}-{title}-{bvid}.md"

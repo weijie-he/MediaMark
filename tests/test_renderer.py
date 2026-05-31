@@ -69,6 +69,25 @@ def test_render_markdown_frontmatter_uses_video_platform():
     assert 'external_id: "123"' in markdown
 
 
+def test_render_markdown_frontmatter_is_obsidian_friendly():
+    video = make_video()
+    video.tags = ["course", "ai"]
+    video.collection = "机器学习"
+
+    markdown = render_markdown(
+        video=video,
+        transcript=None,
+        note=NoteContent(summary="摘要", transcript_text="正文"),
+    )
+
+    assert 'platform: "bilibili"' in markdown
+    assert "tags:" in markdown
+    assert '- "bilibili"' in markdown
+    assert '- "course"' in markdown
+    assert "collections:" in markdown
+    assert '- "机器学习"' in markdown
+
+
 def test_render_prefers_transcript_when_note_is_also_present():
     transcript = Transcript(
         source="bilibili_subtitle",

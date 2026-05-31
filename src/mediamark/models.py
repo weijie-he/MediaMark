@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 SortMode = Literal["source", "time-desc", "time-asc", "views-desc", "views-asc"]
 PartSelectionMode = Literal["selected", "all"]
-Platform = Literal["bilibili", "douyin"]
+Platform = Literal["bilibili", "douyin", "xiaohongshu"]
 TranscriptSource = Literal["bilibili_subtitle", "getnote", "failed"]
 ContentLevel = Literal["transcript_only", "note_plus_transcript", "metadata_only"]
 ErrorCode = Literal[

@@ -42,3 +42,18 @@ def test_video_item_can_carry_platform_metadata():
 
     assert video.platform == "douyin"
     assert video.external_id == "123"
+
+
+def test_video_item_can_carry_xiaohongshu_platform_metadata():
+    video = VideoItem(
+        url="https://www.xiaohongshu.com/explore/abc123",
+        bvid=None,
+        aid=None,
+        cid=None,
+        title="小红书笔记 abc123",
+        platform="xiaohongshu",
+        external_id="abc123",
+    )
+
+    assert video.platform == "xiaohongshu"
+    assert video.external_id == "abc123"

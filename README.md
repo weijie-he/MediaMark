@@ -4,6 +4,8 @@ MediaMark 是一个多平台媒体内容转 Markdown 的个人知识采集工具
 
 v0.4 开始加入平台 Adapter 架构，并实验性支持抖音单链接。抖音不做站内字幕抓取，单链接会直接交给 Get笔记兜底；主页、合集、搜索页批量抓取暂不支持。
 
+v0.5 继续增强多平台输出：实验性支持小红书单链接，增加输出目录模板、运行内去重、collection index，以及更适合 Obsidian 的 frontmatter。
+
 v1 的行为是保守的：
 
 - 优先尝试 B 站原字幕或 AI 字幕。
@@ -128,6 +130,10 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 - `getnote.budget.max_fallbacks_per_run`：本次运行最多调用多少次 Get笔记。
 - `getnote.budget.max_minutes_per_run`：本次运行最多使用 Get笔记兜底多少分钟视频。
 - `getnote.profiles`：可选的 Get笔记 profile 列表，每个 profile 支持 `name`、`enabled`、`cli_path`、`env` 和独立 `budget`。
+- `output.directory_template`：可选的输出子目录模板，例如 `{platform}/{collection}`。
+- `archive.dedupe`：是否在同一运行中跳过重复内容。
+- `archive.write_collection_index`：是否为 `collection` 生成索引 Markdown。
+- `archive.collection_index_dir`：collection index 输出目录名。
 - `limits.limit`：展开并排序后最多处理多少个视频。
 - `markdown.filename_template`：输出文件名模板。
 
@@ -139,6 +145,7 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 
 - 单个 B 站视频 URL。
 - 单个抖音视频 URL。该能力是实验性的，需要启用 Get笔记兜底。
+- 单个小红书笔记 URL。该能力是实验性的，需要启用 Get笔记兜底。
 - 裸 BV 号，例如 `BV1xx411c7mD`。
 - B 站 UP 主主页 URL。
 - `mid:<number>` 形式的 UP 主 id，例如 `mid:123456`。
@@ -158,6 +165,7 @@ uv run mediamark run "https://space.bilibili.com/123456"
 uv run mediamark run "mid:123456"
 uv run mediamark run "https://space.bilibili.com/123456/lists/987654"
 uv run mediamark run "https://www.douyin.com/video/..."
+uv run mediamark run "https://www.xiaohongshu.com/explore/..."
 uv run mediamark run ./links.txt
 uv run mediamark run ./links.csv
 uv run mediamark run ./links.jsonl
@@ -173,6 +181,7 @@ CSV 示例：
 url,platform,tags,collection,allow_getnote
 https://www.bilibili.com/video/BV...,bilibili,"ai,course",ml,yes
 https://www.douyin.com/video/...,douyin,"short,idea",shorts,yes
+https://www.xiaohongshu.com/explore/...,xiaohongshu,"note,idea",inbox,yes
 ```
 
 JSONL 示例：
@@ -180,6 +189,7 @@ JSONL 示例：
 ```json
 {"url":"BV1xx411c7mD","tags":["ai"],"allow_getnote":false}
 {"url":"https://www.douyin.com/video/...","platform":"douyin","tags":["short"],"allow_getnote":true}
+{"url":"https://www.xiaohongshu.com/explore/...","platform":"xiaohongshu","collection":"inbox","allow_getnote":true}
 ```
 
 查看当前平台能力矩阵：
@@ -320,11 +330,29 @@ markdown:
 
 对于多 P 视频，P1 保持默认文件名。使用默认模板时，P2 及之后会在扩展名前自动追加 `-p{part_index}`。
 
+如果希望按平台、作者或 collection 组织目录，可以设置：
+
+```yaml
+output:
+  directory_template: "{platform}/{collection}"
+```
+
+开启 collection index 后，带 `collection` 的成功结果会写入：
+
+```text
+output/transcripts/_collections/<collection>.md
+```
+
 自定义模板可使用以下字段：
 
 - `published_at`
 - `title`
 - `bvid`
+- `id`
+- `external_id`
+- `platform`
+- `owner`
+- `collection`
 - `part_index`
 - `part_title`
 
@@ -336,3 +364,18 @@ markdown:
 ```
 
 使用自定义模板时，如果希望多 P 视频文件名互不覆盖，请自行包含 `part_index` 或 `part_title`。
+
+## Obsidian 友好字段
+
+Markdown frontmatter 会包含平台、标签和合集字段，便于 Obsidian 检索：
+
+```yaml
+platform: "bilibili"
+tags:
+  - "bilibili"
+  - "course"
+collections:
+  - "机器学习"
+```
+
+`tags` 会自动包含平台名，并追加 CSV / JSONL 中提供的标签。

@@ -21,4 +21,13 @@ def platform_capabilities() -> list[dict[str, Any]]:
             "getnote_fallback": True,
             "status": "experimental",
         },
+        {
+            "platform": "xiaohongshu",
+            "single_video": True,
+            "uploader": False,
+            "collection": False,
+            "native_subtitle": False,
+            "getnote_fallback": True,
+            "status": "experimental",
+        },
     ]

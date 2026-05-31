@@ -95,6 +95,40 @@ getnote:
     assert config.getnote.profiles[0].budget.max_fallbacks_per_run == 2
 
 
+def test_load_config_accepts_output_directory_template(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        """
+output:
+  directory_template: "{platform}/{collection}"
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_file)
+
+    assert config.output.directory_template == "{platform}/{collection}"
+
+
+def test_load_config_accepts_archive_options(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        """
+archive:
+  dedupe: false
+  write_collection_index: false
+  collection_index_dir: "_indexes"
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_file)
+
+    assert config.archive.dedupe is False
+    assert config.archive.write_collection_index is False
+    assert config.archive.collection_index_dir == "_indexes"
+
+
 def test_load_config_rejects_duplicate_getnote_profile_names(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text(

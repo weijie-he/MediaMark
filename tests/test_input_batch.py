@@ -43,6 +43,18 @@ def test_parse_csv_file_accepts_douyin_platform(tmp_path):
     assert rows[0].platform == "douyin"
 
 
+def test_parse_csv_file_accepts_xiaohongshu_platform(tmp_path):
+    path = tmp_path / "links.csv"
+    path.write_text(
+        "url,platform\nhttps://www.xiaohongshu.com/explore/abc123,xiaohongshu\n",
+        encoding="utf-8",
+    )
+
+    rows = parse_input_file(path)
+
+    assert rows[0].platform == "xiaohongshu"
+
+
 def test_parse_jsonl_file_reads_metadata(tmp_path):
     path = tmp_path / "links.jsonl"
     path.write_text(

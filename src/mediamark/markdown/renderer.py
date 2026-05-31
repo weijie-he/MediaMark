@@ -17,6 +17,23 @@ def _quote(value: Any) -> str:
     return f'"{text}"'
 
 
+def _format_yaml_list(key: str, values: list[str]) -> list[str]:
+    if not values:
+        return [f"{key}: []"]
+    return [f"{key}:"] + [f"  - {_quote(value)}" for value in values]
+
+
+def _unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique_values: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        unique_values.append(value)
+    return unique_values
+
+
 def _format_timestamp(seconds: float) -> str:
     total_seconds = max(0, int(seconds))
     hours, remainder = divmod(total_seconds, 3600)
@@ -43,6 +60,7 @@ def _frontmatter(
     fields = [
         ("title", video.title),
         ("source", video.platform),
+        ("platform", video.platform),
         ("url", video.url),
         ("external_id", video.external_id),
         ("bvid", video.bvid),
@@ -58,8 +76,12 @@ def _frontmatter(
         ("content_level", content_level),
         ("has_summary", has_summary),
     ]
+    tags = _unique([video.platform, *video.tags])
+    collections = [video.collection] if video.collection else []
     lines = ["---"]
     lines.extend(f"{key}: {_quote(value)}" for key, value in fields)
+    lines.extend(_format_yaml_list("tags", tags))
+    lines.extend(_format_yaml_list("collections", collections))
     lines.append(f"sections: [{', '.join(_quote(section) for section in sections)}]")
     lines.append(f"generated_at: {_quote(generated_at)}")
     lines.append("---")

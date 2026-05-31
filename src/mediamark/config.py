@@ -127,6 +127,20 @@ class MarkdownConfig(BaseModel):
     filename_template: str = "{published_at}-{title}-{bvid}.md"
 
 
+class OutputConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_default=True)
+
+    directory_template: str = ""
+
+
+class ArchiveConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_default=True)
+
+    dedupe: bool = True
+    write_collection_index: bool = True
+    collection_index_dir: str = "_collections"
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_default=True)
 
@@ -136,6 +150,8 @@ class AppConfig(BaseModel):
     getnote: GetnoteConfig = Field(default_factory=GetnoteConfig)
     limits: LimitsConfig = Field(default_factory=LimitsConfig)
     markdown: MarkdownConfig = Field(default_factory=MarkdownConfig)
+    output: OutputConfig = Field(default_factory=OutputConfig)
+    archive: ArchiveConfig = Field(default_factory=ArchiveConfig)
 
     @field_validator("output_dir", "manifest_path", mode="before")
     @classmethod

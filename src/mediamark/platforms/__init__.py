@@ -2,11 +2,13 @@ from mediamark.models import Platform
 from mediamark.platforms.base import ExpansionContext, PlatformAdapter
 from mediamark.platforms.bilibili import BilibiliAdapter
 from mediamark.platforms.douyin import DouyinAdapter
+from mediamark.platforms.xiaohongshu import XiaohongshuAdapter
 
 
 _ADAPTERS: tuple[PlatformAdapter, ...] = (
     BilibiliAdapter(),
     DouyinAdapter(),
+    XiaohongshuAdapter(),
 )
 
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from mediamark.config import AppConfig, GetnoteConfig, MarkdownConfig
+from mediamark.config import AppConfig, ArchiveConfig, GetnoteConfig, MarkdownConfig, OutputConfig
 from mediamark.models import NoteContent, Transcript, TranscriptLine, VideoItem
 from mediamark.pipeline import Pipeline, output_path_for, video_key
 from mediamark.storage.manifest import ManifestStore
@@ -394,6 +394,22 @@ def test_output_path_for_exposes_part_fields_to_template(tmp_path):
     assert path == tmp_path / "out" / "2026-05-30-合集标题-p3-p3-BV_MULTI.md"
 
 
+def test_output_path_for_applies_output_directory_template(tmp_path):
+    config = AppConfig(
+        output_dir=tmp_path / "out",
+        output=OutputConfig(directory_template="{platform}/{collection}"),
+        markdown=MarkdownConfig(filename_template="{id}-{title}.md"),
+    )
+    video = make_video(bvid=None, title="标题 Mixed 你好")
+    video.platform = "xiaohongshu"
+    video.external_id = "abc123"
+    video.collection = "灵感收藏"
+
+    path = output_path_for(config, video)
+
+    assert path == tmp_path / "out" / "xiaohongshu" / "灵感收藏" / "abc123-标题-mixed-你好.md"
+
+
 @pytest.mark.asyncio
 async def test_process_writes_default_template_multi_part_videos_to_distinct_paths(tmp_path):
     config = make_config(tmp_path)
@@ -419,6 +435,53 @@ async def test_process_writes_default_template_multi_part_videos_to_distinct_pat
     assert paths[1].name == "2026-05-30-合集标题-BV_MULTI-p2.md"
     assert "第一集" in paths[0].read_text(encoding="utf-8")
     assert "第二集" in paths[1].read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_process_dedupes_repeated_video_even_without_skip_existing(tmp_path):
+    config = make_config(tmp_path)
+    video = make_video()
+    duplicate = video.model_copy()
+    bilibili = FakeBilibiliClient({(123, 456): make_transcript("字幕")})
+    pipeline = Pipeline(
+        config,
+        bilibili=bilibili,
+        getnote=FakeGetnoteClient(),
+        manifest=ManifestStore(config.manifest_path),
+    )
+
+    results = await pipeline.process(
+        [video, duplicate],
+        sort="source",
+        limit=None,
+        skip_existing=False,
+    )
+
+    assert [result.status for result in results] == ["done", "skipped"]
+    assert bilibili.calls == [(123, 456, True)]
+
+
+@pytest.mark.asyncio
+async def test_process_writes_collection_index_for_done_items(tmp_path):
+    config = make_config(tmp_path)
+    config.archive = ArchiveConfig(write_collection_index=True)
+    video = make_video(title="合集视频")
+    video.collection = "机器学习"
+    bilibili = FakeBilibiliClient({(123, 456): make_transcript("字幕")})
+    pipeline = Pipeline(
+        config,
+        bilibili=bilibili,
+        getnote=FakeGetnoteClient(),
+        manifest=ManifestStore(config.manifest_path),
+    )
+
+    await pipeline.process([video], sort="source", limit=None, skip_existing=False)
+
+    index_path = config.output_dir / "_collections" / "机器学习.md"
+    assert index_path.exists()
+    text = index_path.read_text(encoding="utf-8")
+    assert "# 机器学习" in text
+    assert "合集视频" in text
 
 
 @pytest.mark.asyncio

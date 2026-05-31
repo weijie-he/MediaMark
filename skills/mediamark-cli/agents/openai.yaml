@@ -1,0 +1,4 @@
+interface:
+  display_name: "MediaMark CLI"
+  short_description: "Convert media links into Markdown notes."
+  default_prompt: "Use $mediamark-cli to convert these media links into Markdown notes."

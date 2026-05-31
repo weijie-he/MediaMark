@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mediamark"
+version = "0.3.0"
+description = "Convert media content to local Markdown files, starting with Bilibili subtitles and Get笔记 fallback notes."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "httpx>=0.27",
+  "pydantic>=2.7",
+  "python-slugify>=8.0",
+  "pyyaml>=6.0",
+  "rich>=13.7",
+  "typer>=0.12",
+]
+
+[project.scripts]
+mediamark = "mediamark.cli:app"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.2",
+  "pytest-asyncio>=0.23",
+  "respx>=0.21",
+  "syrupy>=4.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

@@ -1,0 +1,34 @@
+output_dir: "./output/transcripts"
+manifest_path: "./data/manifest.jsonl"
+
+bilibili:
+  cookie_file: "~/.config/mediamark/bilibili.cookie"
+  prefer_ai_subtitle: true
+  request_sleep_seconds: 1.0
+  # selected: URL 包含 ?p=N 时只处理指定分 P。
+  # all: 忽略 ?p=N，处理同一 BVID 的全部分 P。
+  part_selection: selected
+
+getnote:
+  enabled: true
+  cli_path: "getnote"
+  budget:
+    # null 表示本次运行不限制。
+    max_fallbacks_per_run: null
+    max_minutes_per_run: null
+  profiles:
+    - name: default
+      enabled: true
+      cli_path: "getnote"
+      env: {}
+      budget:
+        max_fallbacks_per_run: null
+        max_minutes_per_run: null
+
+limits:
+  limit: null
+
+markdown:
+  # Available fields: published_at, title, bvid, part_index, part_title.
+  # The default template appends -p{part_index} automatically for multi-part videos after P1.
+  filename_template: "{published_at}-{title}-{bvid}.md"

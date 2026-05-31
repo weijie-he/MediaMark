@@ -61,7 +61,7 @@ def output_path_for(config: AppConfig, video: VideoItem) -> Path:
     filename = config.markdown.filename_template.format(
         published_at=published_at,
         title=title,
-        bvid=video.bvid or "unknown-bvid",
+        bvid=video.bvid or video.external_id or "unknown-bvid",
         part_index=video.part_index,
         part_title=part_title,
     )

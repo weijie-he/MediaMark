@@ -48,6 +48,27 @@ def test_render_getnote_document_with_summary():
     assert "## 逐字稿" in markdown
 
 
+def test_render_markdown_frontmatter_uses_video_platform():
+    video = VideoItem(
+        url="https://www.douyin.com/video/123",
+        bvid=None,
+        aid=None,
+        cid=None,
+        title="抖音视频 123",
+        platform="douyin",
+        external_id="123",
+    )
+
+    markdown = render_markdown(
+        video=video,
+        transcript=None,
+        note=NoteContent(summary="摘要", transcript_text="正文"),
+    )
+
+    assert 'source: "douyin"' in markdown
+    assert 'external_id: "123"' in markdown
+
+
 def test_render_prefers_transcript_when_note_is_also_present():
     transcript = Transcript(
         source="bilibili_subtitle",

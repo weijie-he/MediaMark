@@ -425,6 +425,38 @@ def test_expand_input_can_ignore_selected_part_when_requested():
     assert [video.part_index for video in result] == [1, 2]
 
 
+def test_expand_input_supports_douyin_single_url():
+    from mediamark.cli import _expand_input
+
+    class FakeClient:
+        pass
+
+    result = asyncio.run(
+        _expand_input(FakeClient(), "https://www.douyin.com/video/123")
+    )
+
+    assert result[0].platform == "douyin"
+    assert result[0].external_id == "123"
+
+
+def test_expand_csv_input_respects_douyin_platform(tmp_path):
+    from mediamark.cli import _expand_input
+
+    path = tmp_path / "links.csv"
+    path.write_text(
+        "url,platform,tags\nhttps://example.com/share/123,douyin,short\n",
+        encoding="utf-8",
+    )
+
+    class FakeClient:
+        pass
+
+    result = asyncio.run(_expand_input(FakeClient(), str(path)))
+
+    assert result[0].platform == "douyin"
+    assert result[0].tags == ["short"]
+
+
 def test_expand_input_rejects_directory_input(tmp_path):
     from mediamark.cli import _expand_input
 
@@ -592,6 +624,26 @@ def test_run_dry_run_estimate_getnote_prints_summary(monkeypatch):
     assert result.exit_code == 0
     assert "getnote_fallbacks=1" in result.output
     assert "getnote_minutes=2" in result.output
+
+
+def test_platforms_command_lists_capabilities():
+    from mediamark.cli import app
+
+    result = runner.invoke(app, ["platforms"])
+
+    assert result.exit_code == 0
+    assert "bilibili" in result.output
+    assert "douyin" in result.output
+    assert "single_video" in result.output
+
+
+def test_platforms_command_supports_json_output():
+    from mediamark.cli import app
+
+    result = runner.invoke(app, ["platforms", "--json"])
+
+    assert result.exit_code == 0
+    assert '"platform": "douyin"' in result.output
 
 
 def test_doctor_reports_getnote_and_paths(monkeypatch, tmp_path):

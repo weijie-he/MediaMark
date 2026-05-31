@@ -42,8 +42,9 @@ def _frontmatter(
     generated_at = datetime.now(timezone.utc).isoformat()
     fields = [
         ("title", video.title),
-        ("source", "bilibili"),
+        ("source", video.platform),
         ("url", video.url),
+        ("external_id", video.external_id),
         ("bvid", video.bvid),
         ("aid", video.aid),
         ("cid", video.cid),

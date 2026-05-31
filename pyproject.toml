@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mediamark"
-version = "0.3.0"
+version = "0.4.0"
 description = "Convert media content to local Markdown files, starting with Bilibili subtitles and Get笔记 fallback notes."
 readme = "README.md"
 requires-python = ">=3.12"

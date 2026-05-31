@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 SortMode = Literal["source", "time-desc", "time-asc", "views-desc", "views-asc"]
 PartSelectionMode = Literal["selected", "all"]
-Platform = Literal["bilibili"]
+Platform = Literal["bilibili", "douyin"]
 TranscriptSource = Literal["bilibili_subtitle", "getnote", "failed"]
 ContentLevel = Literal["transcript_only", "note_plus_transcript", "metadata_only"]
 ErrorCode = Literal[
@@ -62,6 +62,8 @@ class VideoItem(BaseModel):
     aid: int | None
     cid: int | None
     title: str
+    platform: Platform = "bilibili"
+    external_id: str | None = None
     owner_name: str | None = None
     owner_mid: str | None = None
     published_at: datetime | None = None

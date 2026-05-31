@@ -31,6 +31,18 @@ def test_parse_csv_file_reads_metadata(tmp_path):
     assert rows[0].allow_getnote is False
 
 
+def test_parse_csv_file_accepts_douyin_platform(tmp_path):
+    path = tmp_path / "links.csv"
+    path.write_text(
+        "url,platform\nhttps://www.douyin.com/video/123,douyin\n",
+        encoding="utf-8",
+    )
+
+    rows = parse_input_file(path)
+
+    assert rows[0].platform == "douyin"
+
+
 def test_parse_jsonl_file_reads_metadata(tmp_path):
     path = tmp_path / "links.jsonl"
     path.write_text(

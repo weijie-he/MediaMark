@@ -27,3 +27,18 @@ def test_video_item_can_carry_batch_metadata():
     assert video.collection == "ml"
     assert video.allow_getnote is False
     assert video.input_url == "links.csv"
+
+
+def test_video_item_can_carry_platform_metadata():
+    video = VideoItem(
+        url="https://www.douyin.com/video/123",
+        bvid=None,
+        aid=None,
+        cid=None,
+        title="抖音视频 123",
+        platform="douyin",
+        external_id="123",
+    )
+
+    assert video.platform == "douyin"
+    assert video.external_id == "123"

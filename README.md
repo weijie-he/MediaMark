@@ -2,6 +2,8 @@
 
 MediaMark 是一个多平台媒体内容转 Markdown 的个人知识采集工具。当前第一个 CLI 版本先从 B 站开始：把视频字幕导出为本地 Markdown 文件；只有在视频没有可用 B 站字幕时，才会调用 Get笔记作为兜底。
 
+v0.4 开始加入平台 Adapter 架构，并实验性支持抖音单链接。抖音不做站内字幕抓取，单链接会直接交给 Get笔记兜底；主页、合集、搜索页批量抓取暂不支持。
+
 v1 的行为是保守的：
 
 - 优先尝试 B 站原字幕或 AI 字幕。
@@ -136,6 +138,7 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 `mediamark run` 支持：
 
 - 单个 B 站视频 URL。
+- 单个抖音视频 URL。该能力是实验性的，需要启用 Get笔记兜底。
 - 裸 BV 号，例如 `BV1xx411c7mD`。
 - B 站 UP 主主页 URL。
 - `mid:<number>` 形式的 UP 主 id，例如 `mid:123456`。
@@ -154,6 +157,7 @@ uv run mediamark run "BV1xx411c7mD"
 uv run mediamark run "https://space.bilibili.com/123456"
 uv run mediamark run "mid:123456"
 uv run mediamark run "https://space.bilibili.com/123456/lists/987654"
+uv run mediamark run "https://www.douyin.com/video/..."
 uv run mediamark run ./links.txt
 uv run mediamark run ./links.csv
 uv run mediamark run ./links.jsonl
@@ -168,12 +172,21 @@ CSV 示例：
 ```csv
 url,platform,tags,collection,allow_getnote
 https://www.bilibili.com/video/BV...,bilibili,"ai,course",ml,yes
+https://www.douyin.com/video/...,douyin,"short,idea",shorts,yes
 ```
 
 JSONL 示例：
 
 ```json
 {"url":"BV1xx411c7mD","tags":["ai"],"allow_getnote":false}
+{"url":"https://www.douyin.com/video/...","platform":"douyin","tags":["short"],"allow_getnote":true}
+```
+
+查看当前平台能力矩阵：
+
+```bash
+uv run mediamark platforms
+uv run mediamark platforms --json
 ```
 
 ## 排序和数量限制

@@ -12,7 +12,6 @@ import yaml
 from rich.console import Console
 
 from mediamark.bilibili.client import BilibiliClient
-from mediamark.bilibili.urls import InputKind, classify_input
 from mediamark.config import AppConfig, GetnoteProfileConfig, expand_path, load_config
 from mediamark.getnote.cli_client import GetnoteCliClient
 from mediamark.getnote.profiles import GetnoteProfilePool
@@ -20,12 +19,17 @@ from mediamark.input_batch import parse_input_file
 from mediamark.models import (
     BatchInputRow,
     PartSelectionMode,
+    Platform,
     ProcessResult,
     SortMode,
     VideoItem,
     sort_video_items,
 )
 from mediamark.pipeline import Pipeline
+from mediamark.platforms import adapter_for_input, adapter_for_platform
+from mediamark.platforms.base import ExpansionContext
+from mediamark.platforms.bilibili import filter_selected_part
+from mediamark.platforms.capabilities import platform_capabilities
 from mediamark.storage.manifest import ManifestStore
 
 
@@ -60,21 +64,21 @@ async def _expand_input(
     client: BilibiliClient,
     input_value: str,
     part_selection: PartSelectionMode = "selected",
+    platform: Platform | None = None,
     _file_stack: set[Path] | None = None,
 ) -> list[VideoItem]:
-    classified = classify_input(input_value)
+    context = ExpansionContext(
+        bilibili_client=client,
+        part_selection=part_selection,
+    )
+    adapter = adapter_for_platform(platform) if platform else adapter_for_input(input_value)
+    if adapter is not None:
+        try:
+            return await adapter.expand(input_value, context)
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
 
-    if classified.kind == InputKind.VIDEO:
-        videos = await client.get_video_by_bvid(classified.value)
-        if part_selection == "selected":
-            return _filter_selected_part(videos, classified.part_index, input_value)
-        return videos
-    if classified.kind == InputKind.UPLOADER:
-        return await client.get_uploader_videos(classified.value)
-    if classified.kind == InputKind.COLLECTION:
-        return await client.get_collection_videos(classified.value)
-
-    path = Path(classified.value).expanduser()
+    path = Path(input_value).expanduser()
     if not path.exists():
         raise typer.BadParameter(f"File not found: {path}")
     try:
@@ -92,6 +96,7 @@ async def _expand_input(
 
     videos: list[VideoItem] = []
     nested_file_stack = {*file_stack, resolved_path}
+    structured_input = resolved_path.suffix.lower() in {".csv", ".jsonl"}
     try:
         rows = parse_input_file(resolved_path)
     except ValueError as exc:
@@ -101,6 +106,7 @@ async def _expand_input(
             client,
             row.url,
             part_selection=part_selection,
+            platform=row.platform if structured_input else None,
             _file_stack=nested_file_stack,
         )
         videos.extend(_apply_batch_metadata(nested_videos, row, str(resolved_path)))
@@ -112,12 +118,10 @@ def _filter_selected_part(
     part_index: int | None,
     input_value: str,
 ) -> list[VideoItem]:
-    if part_index is None:
-        return videos
-    selected = [video for video in videos if video.part_index == part_index]
-    if not selected:
-        raise typer.BadParameter(f"Could not find part p={part_index} for input: {input_value}")
-    return selected
+    try:
+        return filter_selected_part(videos, part_index, input_value)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def _apply_batch_metadata(
@@ -397,6 +401,35 @@ def status(
             console.print(
                 f"- {record['key']} {record['url']}{error_code} {record.get('error', '')}"
             )
+
+
+@app.command("platforms")
+def platforms(
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Print JSON platform capabilities."),
+    ] = False,
+) -> None:
+    capabilities = platform_capabilities()
+    if json_output:
+        console.print(json.dumps(capabilities, ensure_ascii=False, indent=2))
+        return
+    for capability in capabilities:
+        enabled = [
+            name
+            for name in (
+                "single_video",
+                "uploader",
+                "collection",
+                "native_subtitle",
+                "getnote_fallback",
+            )
+            if capability.get(name) is True
+        ]
+        console.print(
+            f"{capability['platform']} status={capability['status']} "
+            f"capabilities={','.join(enabled)}"
+        )
 
 
 @app.command("clean-pending")

@@ -233,6 +233,29 @@ async def test_process_uses_getnote_fallback_when_subtitle_missing(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_process_douyin_uses_getnote_without_bilibili_subtitle_lookup(tmp_path):
+    config = make_config(tmp_path)
+    video = make_video(bvid=None, aid=None, cid=None, title="抖音视频")
+    video.url = "https://www.douyin.com/video/123"
+    video.platform = "douyin"
+    video.external_id = "123"
+    bilibili = FakeBilibiliClient({})
+    getnote = FakeGetnoteClient(NoteContent(summary="摘要", transcript_text="正文"))
+    pipeline = Pipeline(
+        config,
+        bilibili=bilibili,
+        getnote=getnote,
+        manifest=ManifestStore(config.manifest_path),
+    )
+
+    results = await pipeline.process([video], sort="source", limit=None, skip_existing=False)
+
+    assert results[0].status == "done"
+    assert bilibili.calls == []
+    assert getnote.calls == [video.url]
+
+
+@pytest.mark.asyncio
 async def test_process_uses_getnote_profile_pool_when_subtitle_missing(tmp_path):
     config = make_config(tmp_path)
     video = make_video()

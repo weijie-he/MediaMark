@@ -74,6 +74,29 @@ uv run mediamark run ./links.csv --sort source
 
 ## Common Commands
 
+Bilibili accepted input examples:
+
+```text
+https://www.bilibili.com/video/BV1f741117SH/
+BV1f741117SH
+https://www.bilibili.com/video/BV1Pv411t7i6?p=2
+https://space.bilibili.com/672328094
+mid:672328094
+https://www.bilibili.com/medialist/play/ml1187030295
+https://www.bilibili.com/medialist/play/ml961810232/BV1Wf4y1D7Z7
+https://space.bilibili.com/123456/lists/987654
+https://space.bilibili.com/123456/series/987654
+https://www.bilibili.com/list/123456
+https://www.bilibili.com/collection/123456
+https://www.bilibili.com/index.html?list=123456
+```
+
+Ask the user to normalize unsupported Bilibili inputs before running MediaMark:
+
+- `https://b23.tv/...`: open it first and use the final `www.bilibili.com` URL.
+- `https://www.bilibili.com/video/av...`: use the same video's BV URL instead.
+- `bangumi/play/ep...`, live rooms, opus/dynamic/article links: not ordinary Bilibili video submissions.
+
 Single inputs:
 
 ```bash

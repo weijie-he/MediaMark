@@ -154,6 +154,28 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 - CSV 文件路径，至少包含 `url` 列，可选 `platform`、`tags`、`collection`、`allow_getnote`。
 - JSONL 文件路径，每行一个对象，可选字段同 CSV。
 
+### B 站链接示例
+
+建议优先使用下表中的规范格式。B 站分享链接里常见的 `spm_id_from`、`vd_source` 等追踪参数可以保留，但更推荐清理成主干 URL。
+
+| 类型 | 示例 | 说明 |
+| --- | --- | --- |
+| 单个视频页面 | `https://www.bilibili.com/video/BV1f741117SH/` | 最推荐，包含完整 BV 号。 |
+| 裸 BV 号 | `BV1f741117SH` | 适合批量文件里一行一个视频。 |
+| 视频选集指定分 P | `https://www.bilibili.com/video/BV1Pv411t7i6?p=2` | 默认只处理 `p=2`；加 `--part-selection all` 可处理全部分 P。 |
+| UP 主主页 | `https://space.bilibili.com/672328094` | 会展开该 UP 主投稿视频。也接受 `/video` 后缀。 |
+| UP 主 id | `mid:672328094` | MediaMark 自定义简写，等价于输入 UP 主主页。 |
+| 播单/收藏夹 | `https://www.bilibili.com/medialist/play/ml1187030295` | 会展开列表内的视频。 |
+| 播单内视频定位链接 | `https://www.bilibili.com/medialist/play/ml961810232/BV1Wf4y1D7Z7` | B 站页面常见格式，MediaMark 会按列表处理。 |
+| 空间合集/系列 | `https://space.bilibili.com/123456/lists/987654` | 也接受 `https://space.bilibili.com/123456/series/987654`。 |
+| 旧版列表/收藏兼容格式 | `https://www.bilibili.com/list/123456` | 也接受 `/collection/123456`、`index.html?list=123456`、`?media_id=123456`、`?fid=123456`。 |
+
+当前不支持的 B 站链接：
+
+- `https://b23.tv/...` 短链：请先在浏览器打开，复制跳转后的 `https://www.bilibili.com/...` 链接。
+- `https://www.bilibili.com/video/av...` 旧 av 链接：请改用同一视频的 BV 链接。
+- 番剧/影视 `bangumi/play/ep...`、直播间、动态、专栏等非普通视频投稿链接。
+
 示例：
 
 ```bash

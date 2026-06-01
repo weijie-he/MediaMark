@@ -95,6 +95,71 @@ getnote:
     assert config.getnote.profiles[0].budget.max_fallbacks_per_run == 2
 
 
+def test_load_config_accepts_getnote_fallback_mode_and_web_config(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        """
+getnote:
+  enabled: true
+  fallback_mode: auto
+  web:
+    enabled: true
+    user_data_dir: "~/Library/Application Support/MediaMark/getnote-web"
+    headless: false
+    timeout_seconds: 300
+    max_items_per_run: 3
+    download_dir: "~/.cache/mediamark/getnote-web-downloads"
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_file)
+
+    assert config.getnote.fallback_mode == "auto"
+    assert config.getnote.web.enabled is True
+    assert str(config.getnote.web.user_data_dir).endswith(
+        "Library/Application Support/MediaMark/getnote-web"
+    )
+    assert config.getnote.web.headless is False
+    assert config.getnote.web.timeout_seconds == 300
+    assert config.getnote.web.max_items_per_run == 3
+    assert str(config.getnote.web.download_dir).endswith(
+        ".cache/mediamark/getnote-web-downloads"
+    )
+
+
+def test_load_config_rejects_invalid_getnote_fallback_mode(tmp_path):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        """
+getnote:
+  fallback_mode: private-api
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError):
+        load_config(config_file)
+
+
+@pytest.mark.parametrize("field_name", ["timeout_seconds", "max_items_per_run"])
+def test_load_config_rejects_bool_getnote_web_numbers(tmp_path, field_name):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        f"""
+getnote:
+  web:
+    {field_name}: true
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ValidationError, match="Boolean values are not valid numeric"
+    ):
+        load_config(config_file)
+
+
 def test_load_config_accepts_output_directory_template(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text(

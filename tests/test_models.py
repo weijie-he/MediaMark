@@ -1,4 +1,4 @@
-from mediamark.models import BatchInputRow, VideoItem
+from mediamark.models import BatchInputRow, ProcessResult, VideoItem
 
 
 def test_batch_input_row_defaults_to_bilibili_platform():
@@ -57,3 +57,24 @@ def test_video_item_can_carry_xiaohongshu_platform_metadata():
 
     assert video.platform == "xiaohongshu"
     assert video.external_id == "abc123"
+
+
+def test_process_result_accepts_getnote_provider():
+    video = VideoItem(
+        url="https://example.com",
+        bvid=None,
+        aid=None,
+        cid=None,
+        title="title",
+    )
+
+    result = ProcessResult(
+        video=video,
+        status="done",
+        transcript_source="getnote",
+        content_level="note_plus_transcript",
+        getnote_profile="default",
+        getnote_provider="web",
+    )
+
+    assert result.getnote_provider == "web"

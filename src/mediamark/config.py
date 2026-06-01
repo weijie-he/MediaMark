@@ -1,11 +1,13 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from mediamark.models import PartSelectionMode
+
+GetnoteFallbackMode = Literal["cli", "web", "auto"]
 
 
 def expand_path(value: Any) -> Path | None:
@@ -55,6 +57,27 @@ class GetnoteBudgetConfig(BaseModel):
         return _reject_bool(value)
 
 
+class GetnoteWebConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", validate_default=True)
+
+    enabled: bool = False
+    user_data_dir: Path = Path("~/.config/mediamark/getnote-web-chrome")
+    headless: bool = False
+    timeout_seconds: int = Field(default=600, ge=1)
+    max_items_per_run: int = Field(default=5, ge=1)
+    download_dir: Path = Path("~/.cache/mediamark/getnote-web-downloads")
+
+    @field_validator("user_data_dir", "download_dir", mode="before")
+    @classmethod
+    def expand_paths(cls, value: Any) -> Any:
+        return _expand_path(value)
+
+    @field_validator("timeout_seconds", "max_items_per_run", mode="before")
+    @classmethod
+    def reject_bool_numbers(cls, value: Any) -> Any:
+        return _reject_bool(value)
+
+
 class GetnoteProfileConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_default=True)
 
@@ -87,9 +110,11 @@ class GetnoteConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", validate_default=True)
 
     enabled: bool = True
+    fallback_mode: GetnoteFallbackMode = "cli"
     cli_path: str = "getnote"
     budget: GetnoteBudgetConfig = Field(default_factory=GetnoteBudgetConfig)
     profiles: list[GetnoteProfileConfig] = Field(default_factory=list)
+    web: GetnoteWebConfig = Field(default_factory=GetnoteWebConfig)
 
     @field_validator("cli_path", mode="before")
     @classmethod

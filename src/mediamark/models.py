@@ -10,6 +10,7 @@ PartSelectionMode = Literal["selected", "all"]
 Platform = Literal["bilibili", "douyin", "xiaohongshu"]
 TranscriptSource = Literal["bilibili_subtitle", "getnote", "failed"]
 ContentLevel = Literal["transcript_only", "note_plus_transcript", "metadata_only"]
+GetnoteProvider = Literal["cli", "web"]
 ErrorCode = Literal[
     "no_subtitle",
     "getnote_disabled",
@@ -17,6 +18,11 @@ ErrorCode = Literal[
     "getnote_quota_exceeded",
     "getnote_auth_failed",
     "getnote_cli_error",
+    "getnote_web_login_required",
+    "getnote_web_generation_timeout",
+    "getnote_web_export_not_found",
+    "getnote_web_export_failed",
+    "getnote_web_browser_error",
     "network_error",
     "platform_parse_error",
     "subtitle_parse_error",
@@ -95,6 +101,7 @@ class ProcessResult(BaseModel):
     error: str | None = None
     error_code: ErrorCode | None = None
     getnote_profile: str | None = None
+    getnote_provider: GetnoteProvider | None = None
 
 
 class GetnoteEstimateItem(BaseModel):

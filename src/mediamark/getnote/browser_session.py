@@ -256,7 +256,7 @@ class GetnoteBrowserSession:
         for selector in selectors:
             locator = page.locator(selector)
             if locator.count() > 0:
-                first = locator.first()
+                first = locator.first
                 if first.is_visible() and first.is_enabled():
                     return first
         return None

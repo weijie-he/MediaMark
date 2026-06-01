@@ -49,6 +49,7 @@ class FakeLocator:
     def is_enabled(self):
         return self.name not in self.page.disabled
 
+    @property
     def first(self):
         return self
 

@@ -15,6 +15,7 @@ class NoGetnoteProfileAvailable(RuntimeError):
 class GetnoteProfileResult:
     note: NoteContent
     profile_name: str
+    provider_name: str = "cli"
 
 
 class GetnoteProfilePool:

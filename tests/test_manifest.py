@@ -203,6 +203,75 @@ def test_manifest_failed_record_stores_error_code_attempt_and_profile(tmp_path):
     assert record["input_url"] == "links.csv"
 
 
+def test_manifest_records_getnote_provider_on_done(tmp_path):
+    store = ManifestStore(tmp_path / "manifest.jsonl")
+
+    store.record_done(
+        key="BV1:1",
+        url="https://example.com",
+        output_path=Path("out.md"),
+        source="getnote",
+        getnote_profile="default",
+        getnote_provider="web",
+    )
+
+    record = store.latest_records()["BV1:1"]
+    assert record["getnote_provider"] == "web"
+
+
+def test_manifest_record_done_preserves_positional_input_url(tmp_path):
+    store = ManifestStore(tmp_path / "manifest.jsonl")
+
+    store.record_done(
+        "BV1:1",
+        "https://example.com",
+        Path("out.md"),
+        "getnote",
+        "default",
+        "links.csv",
+    )
+
+    record = store.latest_records()["BV1:1"]
+    assert record["getnote_profile"] == "default"
+    assert record["input_url"] == "links.csv"
+    assert "getnote_provider" not in record
+
+
+def test_manifest_records_getnote_provider_on_failed(tmp_path):
+    store = ManifestStore(tmp_path / "manifest.jsonl")
+
+    store.record_failed(
+        key="BV1:1",
+        url="https://example.com",
+        error="boom",
+        error_code="getnote_web_export_failed",
+        getnote_profile="default",
+        getnote_provider="web",
+    )
+
+    record = store.latest_records()["BV1:1"]
+    assert record["getnote_provider"] == "web"
+
+
+def test_manifest_record_failed_preserves_positional_input_url(tmp_path):
+    store = ManifestStore(tmp_path / "manifest.jsonl")
+
+    store.record_failed(
+        "BV1:1",
+        "https://example.com",
+        "boom",
+        "getnote_cli_error",
+        2,
+        "default",
+        "links.csv",
+    )
+
+    record = store.latest_records()["BV1:1"]
+    assert record["getnote_profile"] == "default"
+    assert record["input_url"] == "links.csv"
+    assert "getnote_provider" not in record
+
+
 def test_manifest_next_attempt_uses_latest_record(tmp_path):
     store = ManifestStore(tmp_path / "manifest.jsonl")
     store.record_failed("BV1:1", "url", "first", attempt=1)

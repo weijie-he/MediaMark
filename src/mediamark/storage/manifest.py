@@ -97,6 +97,7 @@ class ManifestStore:
         source: str,
         getnote_profile: str | None = None,
         input_url: str | None = None,
+        getnote_provider: str | None = None,
     ) -> None:
         record = {
             "key": key,
@@ -107,6 +108,8 @@ class ManifestStore:
         }
         if getnote_profile is not None:
             record["getnote_profile"] = getnote_profile
+        if getnote_provider is not None:
+            record["getnote_provider"] = getnote_provider
         if input_url is not None:
             record["input_url"] = input_url
         self._append(record)
@@ -120,6 +123,7 @@ class ManifestStore:
         attempt: int | None = None,
         getnote_profile: str | None = None,
         input_url: str | None = None,
+        getnote_provider: str | None = None,
     ) -> None:
         record = {"key": key, "url": url, "status": "failed", "error": error}
         if error_code is not None:
@@ -128,6 +132,8 @@ class ManifestStore:
             record["attempt"] = attempt
         if getnote_profile is not None:
             record["getnote_profile"] = getnote_profile
+        if getnote_provider is not None:
+            record["getnote_provider"] = getnote_provider
         if input_url is not None:
             record["input_url"] = input_url
         self._append(record)

@@ -41,10 +41,29 @@ class PipelineManifest(Protocol):
     def record_pending(self, key: str, url: str) -> None:
         ...
 
-    def record_done(self, key: str, url: str, output_path: Path, source: str) -> None:
+    def record_done(
+        self,
+        key: str,
+        url: str,
+        output_path: Path,
+        source: str,
+        getnote_profile: str | None = None,
+        input_url: str | None = None,
+        getnote_provider: str | None = None,
+    ) -> None:
         ...
 
-    def record_failed(self, key: str, url: str, error: str) -> None:
+    def record_failed(
+        self,
+        key: str,
+        url: str,
+        error: str,
+        error_code: str | None = None,
+        attempt: int | None = None,
+        getnote_profile: str | None = None,
+        input_url: str | None = None,
+        getnote_provider: str | None = None,
+    ) -> None:
         ...
 
     def record_skipped(self, key: str, url: str, reason: str) -> None:
@@ -121,13 +140,18 @@ def _classify_error(exc: Exception) -> ErrorCode:
     return "unknown_error"
 
 
-def _note_and_profile(result: object) -> tuple[NoteContent, str | None]:
+def _note_and_profile(result: object) -> tuple[NoteContent, str | None, str | None]:
     if isinstance(result, NoteContent):
-        return result, None
+        return result, None, None
     note = getattr(result, "note", None)
     profile_name = getattr(result, "profile_name", None)
+    provider_name = getattr(result, "provider_name", None)
     if isinstance(note, NoteContent):
-        return note, profile_name if isinstance(profile_name, str) else None
+        return (
+            note,
+            profile_name if isinstance(profile_name, str) else None,
+            provider_name if isinstance(provider_name, str) else None,
+        )
     raise TypeError("Get笔记 client must return NoteContent or GetnoteProfileResult")
 
 
@@ -277,13 +301,14 @@ class Pipeline:
             source = "bilibili_subtitle"
             content_level = "transcript_only"
             profile_name = None
+            provider_name = None
         else:
             if video.allow_getnote is False:
                 raise RuntimeError("Get笔记 fallback is disabled for this input row")
             if not self.config.getnote.enabled or self.getnote is None:
                 raise RuntimeError("No Bilibili subtitle and Get笔记 fallback is disabled")
             self.getnote_budget.consume(video)
-            note, profile_name = _note_and_profile(self.getnote.save_url(video))
+            note, profile_name, provider_name = _note_and_profile(self.getnote.save_url(video))
             source = "getnote"
             content_level = "note_plus_transcript"
 
@@ -298,6 +323,7 @@ class Pipeline:
             output_path=path,
             source=source,
             getnote_profile=profile_name,
+            getnote_provider=provider_name,
             input_url=video.input_url,
         )
         return ProcessResult(
@@ -307,4 +333,5 @@ class Pipeline:
             content_level=content_level,
             path=path,
             getnote_profile=profile_name,
+            getnote_provider=provider_name,
         )

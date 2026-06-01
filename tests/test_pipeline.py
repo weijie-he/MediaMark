@@ -50,6 +50,22 @@ class FakeGetnoteProfilePool:
         )()
 
 
+class FakeGetnoteProviderClient:
+    def __init__(self, note: NoteContent):
+        self.note = note
+        self.calls: list[str] = []
+
+    def save_url(self, video: VideoItem):
+        from mediamark.getnote.profiles import GetnoteProfileResult
+
+        self.calls.append(video.url)
+        return GetnoteProfileResult(
+            note=self.note,
+            profile_name="default",
+            provider_name="web",
+        )
+
+
 def make_config(tmp_path: Path, getnote_enabled: bool = True) -> AppConfig:
     return AppConfig(
         output_dir=tmp_path / "out",
@@ -272,6 +288,23 @@ async def test_process_uses_getnote_profile_pool_when_subtitle_missing(tmp_path)
 
     assert results[0].getnote_profile == "main"
     assert pool.calls == [video.url]
+
+
+@pytest.mark.asyncio
+async def test_process_records_getnote_provider_metadata(tmp_path):
+    config = make_config(tmp_path)
+    video = make_video("BV_WEB", aid=1, cid=10)
+    bilibili = FakeBilibiliClient({(1, 10): None})
+    getnote = FakeGetnoteProviderClient(NoteContent(raw_markdown="# Web note"))
+    manifest = ManifestStore(tmp_path / "manifest.jsonl")
+    pipeline = Pipeline(config, bilibili=bilibili, getnote=getnote, manifest=manifest)
+
+    results = await pipeline.process([video], sort="source", limit=None, skip_existing=False)
+
+    assert results[0].status == "done"
+    assert results[0].getnote_provider == "web"
+    record = manifest.latest_records()["BV_WEB:1"]
+    assert record["getnote_provider"] == "web"
 
 
 @pytest.mark.asyncio

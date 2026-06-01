@@ -46,6 +46,7 @@ def test_profile_pool_uses_first_enabled_profile():
 
     assert isinstance(result, GetnoteProfileResult)
     assert result.profile_name == "main"
+    assert result.provider_name == "cli"
     assert result.note.summary == "main 摘要"
     assert clients["backup"].calls == []
 

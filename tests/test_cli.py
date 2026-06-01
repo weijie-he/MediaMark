@@ -116,13 +116,13 @@ def test_dry_run_sorts_limits_and_does_not_create_pipeline_or_getnote(monkeypatc
             return videos
 
     def fail_getnote(*args, **kwargs):
-        raise AssertionError("dry-run must not create GetnoteCliClient")
+        raise AssertionError("dry-run must not create Getnote client")
 
     def fail_pipeline(*args, **kwargs):
         raise AssertionError("dry-run must not create Pipeline")
 
     monkeypatch.setattr(cli, "BilibiliClient", FakeBilibiliClient)
-    monkeypatch.setattr(cli, "GetnoteCliClient", fail_getnote)
+    monkeypatch.setattr(cli, "build_getnote_client", fail_getnote)
     monkeypatch.setattr(cli, "Pipeline", fail_pipeline)
 
     result = runner.invoke(
@@ -333,6 +333,40 @@ def test_run_expands_output_override_before_pipeline(monkeypatch):
 
     assert result.exit_code == 0
     assert captured["output_dir"] == Path.home() / "mediamark-cli-test"
+
+
+def test_run_builds_getnote_client_through_provider_factory(monkeypatch):
+    import mediamark.cli as cli
+
+    captured = {}
+
+    class FakeClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc_info):
+            return None
+
+    async def fake_expand_input(*args, **kwargs):
+        return [make_video("BV1xx411c7mD")]
+
+    class FakePipeline:
+        def __init__(self, config, bilibili, getnote, manifest):
+            captured["getnote"] = getnote
+
+        async def process(self, videos, sort, limit, skip_existing):
+            return []
+
+    marker = object()
+    monkeypatch.setattr(cli, "BilibiliClient", lambda **kwargs: FakeClient())
+    monkeypatch.setattr(cli, "_expand_input", fake_expand_input)
+    monkeypatch.setattr(cli, "Pipeline", FakePipeline)
+    monkeypatch.setattr(cli, "build_getnote_client", lambda config: marker)
+
+    result = runner.invoke(cli.app, ["run", "BV1xx411c7mD"])
+
+    assert result.exit_code == 0
+    assert captured["getnote"] is marker
 
 
 def test_missing_config_path_reports_cli_friendly_error(tmp_path):

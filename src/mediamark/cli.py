@@ -12,9 +12,8 @@ import yaml
 from rich.console import Console
 
 from mediamark.bilibili.client import BilibiliClient
-from mediamark.config import AppConfig, GetnoteProfileConfig, expand_path, load_config
-from mediamark.getnote.cli_client import GetnoteCliClient
-from mediamark.getnote.profiles import GetnoteProfilePool
+from mediamark.config import AppConfig, expand_path, load_config
+from mediamark.getnote.provider import build_getnote_client
 from mediamark.input_batch import parse_input_file
 from mediamark.models import (
     BatchInputRow,
@@ -175,19 +174,6 @@ def _print_getnote_estimate(
     )
 
 
-def _getnote_profiles_from_config(config: AppConfig) -> list[GetnoteProfileConfig]:
-    if config.getnote.profiles:
-        return config.getnote.profiles
-    return [
-        GetnoteProfileConfig(
-            name="default",
-            enabled=config.getnote.enabled,
-            cli_path=config.getnote.cli_path,
-            budget=config.getnote.budget,
-        )
-    ]
-
-
 async def _run_inputs(
     input_values: list[str],
     config: AppConfig,
@@ -234,11 +220,7 @@ async def _run_inputs(
                 )
             return []
 
-        getnote = (
-            GetnoteProfilePool(_getnote_profiles_from_config(config))
-            if config.getnote.enabled
-            else None
-        )
+        getnote = build_getnote_client(config.getnote) if config.getnote.enabled else None
         pipeline = Pipeline(
             config=config,
             bilibili=client,

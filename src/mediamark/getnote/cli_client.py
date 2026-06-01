@@ -10,6 +10,16 @@ class GetnoteCliError(RuntimeError):
     pass
 
 
+def is_membership_required_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return (
+        "not_member" in text
+        or "10201" in text
+        or "openapi 仅对会员开放" in text
+        or "仅对会员开放" in text
+    )
+
+
 def _dig_note_payload(payload: dict[str, Any]) -> dict[str, Any]:
     data = payload.get("data")
     if isinstance(data, dict):

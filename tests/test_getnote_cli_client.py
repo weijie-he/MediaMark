@@ -2,7 +2,12 @@ import subprocess
 
 import pytest
 
-from mediamark.getnote.cli_client import GetnoteCliClient, GetnoteCliError, parse_getnote_payload
+from mediamark.getnote.cli_client import (
+    GetnoteCliClient,
+    GetnoteCliError,
+    is_membership_required_error,
+    parse_getnote_payload,
+)
 
 
 def test_parse_getnote_payload_with_summary_and_markdown():
@@ -218,3 +223,24 @@ def test_save_url_raises_getnote_cli_error_on_bad_scalar_field_type(monkeypatch)
 
     with pytest.raises(GetnoteCliError):
         GetnoteCliClient().save_url("https://example.com/video")
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "not_member",
+        "API error code=10201",
+        "OpenAPI 仅对会员开放",
+        "仅对会员开放",
+    ],
+)
+def test_is_membership_required_error_matches_getnote_openapi_message(message):
+    error = GetnoteCliError(f"getnote CLI failed with exit code 1. stderr: {message}")
+
+    assert is_membership_required_error(error) is True
+
+
+def test_is_membership_required_error_rejects_other_getnote_errors():
+    error = GetnoteCliError("getnote CLI failed with exit code 1. stderr: auth failed")
+
+    assert is_membership_required_error(error) is False

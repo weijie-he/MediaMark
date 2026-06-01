@@ -8,7 +8,13 @@ from mediamark.models import NoteContent, VideoItem
 
 
 class NoGetnoteProfileAvailable(RuntimeError):
-    pass
+    def __init__(
+        self,
+        message: str,
+        errors: list[Exception] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.errors = errors or []
 
 
 @dataclass
@@ -39,16 +45,22 @@ class GetnoteProfilePool:
 
     def save_url(self, video: VideoItem) -> GetnoteProfileResult:
         errors: list[str] = []
+        exceptions: list[Exception] = []
         for profile in self.profiles:
             try:
                 self.budgets[profile.name].consume(video)
                 note = self.clients[profile.name].save_url(video.url)
             except GetnoteBudgetExceeded as exc:
                 errors.append(f"{profile.name}: {exc}")
+                exceptions.append(exc)
                 continue
             except Exception as exc:
                 errors.append(f"{profile.name}: {exc}")
+                exceptions.append(exc)
                 continue
             return GetnoteProfileResult(note=note, profile_name=profile.name)
 
-        raise NoGetnoteProfileAvailable("; ".join(errors) or "No enabled Get笔记 profiles")
+        raise NoGetnoteProfileAvailable(
+            "; ".join(errors) or "No enabled Get笔记 profiles",
+            errors=exceptions,
+        )

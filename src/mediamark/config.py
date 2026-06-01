@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
 from mediamark.models import PartSelectionMode
 
@@ -126,6 +126,19 @@ class GetnoteConfig(BaseModel):
             return None
         return str(expanded)
 
+    @field_validator("fallback_mode")
+    @classmethod
+    def reject_web_fallback_modes_for_loaded_config(
+        cls, value: GetnoteFallbackMode, info: ValidationInfo
+    ) -> GetnoteFallbackMode:
+        if (info.context or {}).get("reject_web_fallback_modes") and value != "cli":
+            raise ValueError(
+                "Only getnote.fallback_mode='cli' is supported. "
+                "Use `mediamark split-links` to split multi-video links, "
+                "then convert and export Markdown manually."
+            )
+        return value
+
     @field_validator("profiles")
     @classmethod
     def reject_duplicate_profile_names(
@@ -196,4 +209,7 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 def load_config(path: Path | None) -> AppConfig:
     if path is None:
         return AppConfig()
-    return AppConfig.model_validate(_read_yaml(path))
+    return AppConfig.model_validate(
+        _read_yaml(path),
+        context={"reject_web_fallback_modes": True},
+    )

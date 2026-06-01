@@ -137,6 +137,51 @@ def test_dry_run_sorts_limits_and_does_not_create_pipeline_or_getnote(monkeypatc
     assert "mid" in result.output
 
 
+def test_split_links_expands_sorts_limits_and_does_not_use_getnote(monkeypatch):
+    from mediamark import cli
+
+    videos = [
+        make_video("BV_LOW00001", view_count=10, title="low"),
+        make_video("BV_HIGH0001", view_count=300, title="high"),
+        make_video("BV_MID00001", view_count=100, title="mid"),
+    ]
+
+    class FakeBilibiliClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc_info):
+            return None
+
+        async def get_uploader_videos(self, mid: str):
+            assert mid == "123"
+            return videos
+
+    def fail_getnote(*args, **kwargs):
+        raise AssertionError("split-links must not create Getnote client")
+
+    def fail_pipeline(*args, **kwargs):
+        raise AssertionError("split-links must not create Pipeline")
+
+    monkeypatch.setattr(cli, "BilibiliClient", FakeBilibiliClient)
+    monkeypatch.setattr(cli, "build_getnote_client", fail_getnote)
+    monkeypatch.setattr(cli, "Pipeline", fail_pipeline)
+
+    result = runner.invoke(
+        cli.app,
+        ["split-links", "mid:123", "--sort", "views-desc", "--limit", "2"],
+    )
+
+    assert result.exit_code == 0
+    assert result.output.splitlines() == [
+        "https://www.bilibili.com/video/BV_HIGH0001",
+        "https://www.bilibili.com/video/BV_MID00001",
+    ]
+
+
 def test_dry_run_prints_part_index_and_part_title(monkeypatch):
     from mediamark import cli
 

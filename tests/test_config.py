@@ -95,7 +95,7 @@ getnote:
     assert config.getnote.profiles[0].budget.max_fallbacks_per_run == 2
 
 
-def test_load_config_accepts_getnote_fallback_mode_and_web_config(tmp_path):
+def test_load_config_rejects_getnote_auto_web_config(tmp_path):
     config_file = tmp_path / "config.yaml"
     config_file.write_text(
         """
@@ -114,20 +114,8 @@ getnote:
         encoding="utf-8",
     )
 
-    config = load_config(config_file)
-
-    assert config.getnote.fallback_mode == "auto"
-    assert config.getnote.web.enabled is True
-    assert str(config.getnote.web.user_data_dir).endswith(
-        "Library/Application Support/MediaMark/getnote-web"
-    )
-    assert config.getnote.web.headless is False
-    assert config.getnote.web.browser_channel == "msedge"
-    assert config.getnote.web.timeout_seconds == 300
-    assert config.getnote.web.max_items_per_run == 3
-    assert str(config.getnote.web.download_dir).endswith(
-        ".cache/mediamark/getnote-web-downloads"
-    )
+    with pytest.raises(ValidationError, match="split-links"):
+        load_config(config_file)
 
 
 def test_load_config_rejects_invalid_getnote_fallback_mode(tmp_path):
@@ -141,6 +129,21 @@ getnote:
     )
 
     with pytest.raises(ValidationError):
+        load_config(config_file)
+
+
+@pytest.mark.parametrize("fallback_mode", ["web", "auto"])
+def test_load_config_rejects_getnote_web_fallback_modes(tmp_path, fallback_mode):
+    config_file = tmp_path / "config.yaml"
+    config_file.write_text(
+        f"""
+getnote:
+  fallback_mode: {fallback_mode}
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValidationError, match="cli"):
         load_config(config_file)
 
 

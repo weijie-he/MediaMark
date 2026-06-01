@@ -4,7 +4,6 @@ from mediamark.config import GetnoteConfig, GetnoteWebConfig
 from mediamark.getnote.cli_client import GetnoteCliError
 from mediamark.getnote.profiles import GetnoteProfilePool, NoGetnoteProfileAvailable
 from mediamark.getnote.provider import AutoGetnoteClient, build_getnote_client
-from mediamark.getnote.web_client import GetnoteWebClient
 from mediamark.models import NoteContent, VideoItem
 
 
@@ -101,36 +100,12 @@ def test_build_getnote_client_cli_mode_returns_cli_pool():
     assert isinstance(client, GetnoteProfilePool)
 
 
-def test_build_getnote_client_web_mode_requires_enabled_web_config(tmp_path):
+@pytest.mark.parametrize("fallback_mode", ["web", "auto"])
+def test_build_getnote_client_rejects_web_fallback_modes(tmp_path, fallback_mode):
     config = GetnoteConfig(
-        fallback_mode="web",
-        web=GetnoteWebConfig(enabled=False, user_data_dir=tmp_path / "profile"),
+        fallback_mode=fallback_mode,
+        web=GetnoteWebConfig(enabled=True, user_data_dir=tmp_path / "profile"),
     )
 
-    with pytest.raises(ValueError, match="getnote.web.enabled"):
+    with pytest.raises(ValueError, match="split-links"):
         build_getnote_client(config)
-
-
-def test_build_getnote_client_web_mode_returns_web_client(tmp_path):
-    config = GetnoteConfig(
-        fallback_mode="web",
-        web=GetnoteWebConfig(enabled=True, user_data_dir=tmp_path / "profile"),
-    )
-
-    client = build_getnote_client(config)
-
-    assert isinstance(client, GetnoteWebClient)
-    assert client.config.user_data_dir == tmp_path / "profile"
-
-
-def test_build_getnote_client_auto_mode_returns_auto_client(tmp_path):
-    config = GetnoteConfig(
-        fallback_mode="auto",
-        web=GetnoteWebConfig(enabled=True, user_data_dir=tmp_path / "profile"),
-    )
-
-    client = build_getnote_client(config)
-
-    assert isinstance(client, AutoGetnoteClient)
-    assert isinstance(client.cli_client, GetnoteProfilePool)
-    assert isinstance(client.web_client, GetnoteWebClient)

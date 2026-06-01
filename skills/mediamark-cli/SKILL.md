@@ -36,7 +36,7 @@ If `uv run mediamark` is not available, use the local environment:
 .venv/bin/python -m mediamark.cli --help
 ```
 
-Get笔记 CLI is an external dependency. For `cli` or `auto` CLI-first flows, make sure the user has installed and authenticated it:
+Get笔记 CLI is an external dependency. For CLI fallback flows, make sure the user has installed and authenticated it:
 
 ```bash
 npm install -g @getnote/cli
@@ -44,28 +44,11 @@ getnote auth
 getnote save "https://www.bilibili.com/video/BV..." -o json
 ```
 
-MediaMark has three Get笔记 fallback modes:
+MediaMark now supports only one Get笔记 fallback mode:
 
 - `cli`: use the external Get笔记 CLI only. Prefer this for paid/member accounts.
-- `web`: use browser automation only. Prefer this for free accounts that can manually generate notes on Get笔记 Web.
-- `auto`: try CLI first, then use Web only when the CLI reports a membership-only limitation.
 
-For Web fallback, require an existing local Chrome, Microsoft Edge, or Chromium install and a persistent profile directory. MediaMark defaults to `browser_channel: auto` and does not install browsers automatically. First login should normally run with `headless: false`:
-
-```yaml
-getnote:
-  enabled: true
-  fallback_mode: "web"
-  web:
-    enabled: true
-    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
-    headless: false
-    browser_channel: "auto"
-    timeout_seconds: 600
-    max_items_per_run: 5
-```
-
-The Web flow opens Get笔记, pastes the media URL, waits for generation, and uses the page's Markdown export action. `browser_channel: auto` tries existing Chrome, Microsoft Edge, then Chromium; set `chrome`, `msedge`, or `chromium` manually when needed. Keep `max_items_per_run` low for free accounts.
+Do not offer browser-based fully automated Get笔记 Web fallback for free users. When a free user provides a Bilibili link that can expand into multiple videos, use `split-links` only to split the link, then tell the user to convert the links and export Markdown manually.
 
 If Codex has a Get笔记-related skill available, use it before debugging Get笔记 CLI behavior.
 
@@ -94,6 +77,15 @@ Then run without `--dry-run`:
 ```bash
 uv run mediamark run ./links.csv --sort source
 ```
+
+For free users who only need link splitting:
+
+```bash
+uv run mediamark split-links "mid:123456" --sort views-desc --limit 50
+uv run mediamark split-links "https://space.bilibili.com/123456/lists/987654"
+```
+
+Explain that `split-links` does not convert, export Markdown, update the manifest, or call Get笔记.
 
 ## Common Commands
 
@@ -192,35 +184,6 @@ getnote:
   budget:
     max_fallbacks_per_run: 20
     max_minutes_per_run: 120
-```
-
-Use Get笔记 Web fallback for free accounts:
-
-```yaml
-getnote:
-  enabled: true
-  fallback_mode: "web"
-  web:
-    enabled: true
-    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
-    headless: false
-    browser_channel: "auto"
-    timeout_seconds: 600
-    max_items_per_run: 5
-```
-
-Use CLI first and Web only for membership-only CLI failures:
-
-```yaml
-getnote:
-  enabled: true
-  fallback_mode: "auto"
-  web:
-    enabled: true
-    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
-    headless: false
-    browser_channel: "auto"
-    max_items_per_run: 5
 ```
 
 Use multiple Get笔记 profiles:

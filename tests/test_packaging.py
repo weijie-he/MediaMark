@@ -14,7 +14,7 @@ def test_project_exposes_mediamark_package_and_cli_entrypoint():
     assert package.__version__ == "0.6.0"
 
 
-def test_package_declares_playwright_dependency():
+def test_package_does_not_declare_playwright_dependency():
     data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert any(dep.startswith("playwright") for dep in data["project"]["dependencies"])
+    assert not any(dep.startswith("playwright") for dep in data["project"]["dependencies"])

@@ -1,7 +1,6 @@
 from mediamark.config import GetnoteConfig, GetnoteProfileConfig
 from mediamark.getnote.cli_client import is_membership_required_error
 from mediamark.getnote.profiles import GetnoteProfilePool, NoGetnoteProfileAvailable
-from mediamark.getnote.web_client import GetnoteWebClient
 from mediamark.models import VideoItem
 
 
@@ -45,20 +44,19 @@ def _build_cli_pool(config: GetnoteConfig) -> GetnoteProfilePool:
     return GetnoteProfilePool(_profiles_from_config(config))
 
 
-def _build_web_client(config: GetnoteConfig) -> GetnoteWebClient:
-    if not config.web.enabled:
-        raise ValueError("getnote.web.enabled must be true when fallback_mode uses web")
-    return GetnoteWebClient(config.web)
+def _unsupported_web_fallback_error() -> ValueError:
+    return ValueError(
+        "Get笔记 Web/auto browser fallback is no longer supported. "
+        "Use `mediamark split-links` to split multi-video links, then convert "
+        "and export Markdown manually."
+    )
 
 
 def build_getnote_client(config: GetnoteConfig) -> object:
     if config.fallback_mode == "cli":
         return _build_cli_pool(config)
     if config.fallback_mode == "web":
-        return _build_web_client(config)
+        raise _unsupported_web_fallback_error()
     if config.fallback_mode == "auto":
-        return AutoGetnoteClient(
-            cli_client=_build_cli_pool(config),
-            web_client=_build_web_client(config),
-        )
+        raise _unsupported_web_fallback_error()
     raise ValueError(f"Unsupported Get笔记 fallback mode: {config.fallback_mode}")

@@ -6,7 +6,7 @@ v0.4 开始加入平台 Adapter 架构，并实验性支持抖音单链接。抖
 
 v0.5 继续增强多平台输出：实验性支持小红书单链接，增加输出目录模板、运行内去重、collection index，以及更适合 Obsidian 的 frontmatter。
 
-v0.6 加入 Get笔记 Web 兜底：会员账号继续走 Get笔记 CLI；免费账号可以走浏览器自动化，自动粘贴链接、等待生成，并通过页面里的 Markdown 导出入口保存结果。
+v0.6 调整 Get笔记策略：会员账号继续走 Get笔记 CLI；免费账号不再提供基于浏览器的全自动流程。对于可展开为多个视频的 B 站链接，MediaMark 只负责拆分链接，用户再自行转化并导出 Markdown。
 
 v1 的行为是保守的：
 
@@ -47,11 +47,9 @@ uv run mediamark doctor
 
 ## Get笔记兜底
 
-MediaMark 支持三种 Get笔记兜底模式：
+MediaMark 只支持 `cli` Get笔记兜底模式：调用外部 Get笔记 CLI，适合已开通 Get笔记会员或 CLI 可用的账号。
 
-- `cli`：调用外部 Get笔记 CLI，适合已开通 Get笔记会员或 CLI 可用的账号。
-- `web`：使用浏览器自动化打开 Get笔记网页，适合免费账号。首次运行会打开一个独立 Chrome 登录态，登录后会复用 `user_data_dir`。
-- `auto`：先尝试 CLI；如果 CLI 明确返回会员限制，再切换到 Web。
+免费账号不再使用 MediaMark 做基于浏览器的全自动 Get笔记流程。如果用户给的是可以展开为多个视频的 B 站链接，请使用 `split-links` 只拆分链接，然后自行在 Get笔记网页或其他工具中转化并导出 Markdown。
 
 Get笔记 CLI 是外部依赖，不会被打包进 MediaMark。会员账号请单独安装并登录 Get笔记 CLI：
 
@@ -65,38 +63,6 @@ getnote auth
 ```bash
 getnote save <url> -o json
 ```
-
-免费账号可以改用 Web 兜底。请确保本机已有 Chrome、Microsoft Edge 或 Chromium 之一；MediaMark 默认会自动探测已有浏览器，不会主动安装浏览器。第一次运行时建议保持 `headless: false` 以便完成登录：
-
-```yaml
-getnote:
-  enabled: true
-  fallback_mode: "web"
-  web:
-    enabled: true
-    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
-    headless: false
-    browser_channel: "auto"
-    timeout_seconds: 600
-    max_items_per_run: 5
-```
-
-如果希望会员账号优先走 CLI，只有遇到会员限制时才自动切到免费账号 Web 流程，可以使用：
-
-```yaml
-getnote:
-  enabled: true
-  fallback_mode: "auto"
-  web:
-    enabled: true
-    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
-    headless: false
-    browser_channel: "auto"
-    timeout_seconds: 600
-    max_items_per_run: 5
-```
-
-Web 兜底会自动粘贴视频链接、等待 Get笔记生成，并点击页面中的 Markdown 导出入口。`web.browser_channel` 默认为 `auto`，会按 Chrome、Microsoft Edge、Chromium 的顺序使用本机已有浏览器；也可以手动设为 `chrome`、`msedge` 或 `chromium`。`web.max_items_per_run` 用来限制本次运行最多通过浏览器处理多少条，避免免费额度被一次性用完。
 
 如果在 agent 工作流中使用本项目，也可以安装或启用对应的 Get笔记 skills。skills 可以帮助 agent 理解 Get笔记 CLI 和 JSON 输出；额度控制仍然依赖 `--dry-run`、`--no-getnote`、小批量验证和账号额度检查。
 
@@ -164,15 +130,10 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 - `bilibili.request_sleep_seconds`：B 站 API 请求后的等待时间。
 - `bilibili.part_selection`：视频 URL 包含 `?p=N` 时的处理方式，`selected` 只处理指定分 P，`all` 处理全部分 P。
 - `getnote.enabled`：是否启用 Get笔记兜底。
-- `getnote.fallback_mode`：Get笔记兜底模式，`cli` 只用 CLI，`web` 只用浏览器自动化，`auto` 先 CLI、遇到会员限制再切到 Web。
+- `getnote.fallback_mode`：Get笔记兜底模式；当前只支持 `cli`。
 - `getnote.cli_path`：外部 `getnote` CLI 的可执行文件路径。
 - `getnote.budget.max_fallbacks_per_run`：本次运行最多调用多少次 Get笔记。
 - `getnote.budget.max_minutes_per_run`：本次运行最多使用 Get笔记兜底多少分钟视频。
-- `getnote.web.enabled`：是否启用 Get笔记 Web 浏览器自动化。
-- `getnote.web.user_data_dir`：浏览器登录态目录，建议为 MediaMark 单独设置。
-- `getnote.web.headless`：是否无头运行。首次登录建议保持 `false`。
-- `getnote.web.browser_channel`：浏览器选择方式。`auto` 会优先使用本机已有浏览器；也可手动指定 `chrome`、`msedge` 或 `chromium`。
-- `getnote.web.max_items_per_run`：本次运行最多通过 Web 兜底处理多少条。
 - `getnote.profiles`：可选的 Get笔记 profile 列表，每个 profile 支持 `name`、`enabled`、`cli_path`、`env` 和独立 `budget`。
 - `output.directory_template`：可选的输出子目录模板，例如 `{platform}/{collection}`。
 - `archive.dedupe`：是否在同一运行中跳过重复内容。
@@ -240,6 +201,16 @@ uv run mediamark run ./links.jsonl
 对于合集、UP 主主页和链接列表文件，MediaMark 会先展开为视频或分 P 记录，再应用排序和数量限制。
 
 对于 B 站视频选集 URL，默认行为是：如果 URL 明确包含 `?p=N`，只处理该分 P；如果没有 `p` 参数，则处理该 BVID 的全部分 P。使用 `--part-selection all` 可以忽略 `?p=N` 并处理全部分 P。
+
+### 只拆分链接
+
+`split-links` 只展开、排序、限制数量并打印视频 URL；它不会写 Markdown、不会更新 manifest，也不会创建 Get笔记客户端。这个命令适合免费账号：MediaMark 负责把 UP 主主页、合集、列表或多 P 视频拆成一行一个视频链接，后续转化和 Markdown 导出由用户自行完成。
+
+```bash
+uv run mediamark split-links "mid:123456" --sort views-desc --limit 20
+uv run mediamark split-links "https://space.bilibili.com/123456/lists/987654"
+uv run mediamark split-links "https://www.bilibili.com/video/BV...?p=2" --part-selection all
+```
 
 CSV 示例：
 

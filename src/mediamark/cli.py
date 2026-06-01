@@ -155,6 +155,11 @@ def _print_dry_run(videos: list[VideoItem]) -> None:
         )
 
 
+def _print_split_links(videos: list[VideoItem]) -> None:
+    for video in videos:
+        console.print(video.url)
+
+
 def _print_result_summary(results: list[ProcessResult]) -> None:
     done = sum(result.status == "done" for result in results)
     failed = sum(result.status == "failed" for result in results)
@@ -233,6 +238,34 @@ async def _run_inputs(
             limit=config.limits.limit,
             skip_existing=skip_existing,
         )
+
+
+async def _split_links(
+    input_value: str,
+    config_path: Path | None,
+    sort: SortMode,
+    limit: int | None,
+    part_selection: PartSelectionMode | None,
+) -> None:
+    config = _load_config_for_cli(config_path)
+    if limit is not None:
+        config.limits.limit = limit
+    if part_selection is not None:
+        config.bilibili.part_selection = part_selection
+
+    async with BilibiliClient(
+        cookie_file=config.bilibili.cookie_file,
+        request_sleep_seconds=config.bilibili.request_sleep_seconds,
+    ) as client:
+        videos = await _expand_input(
+            client,
+            input_value,
+            part_selection=config.bilibili.part_selection,
+        )
+    selected_videos = sort_video_items(videos, sort)
+    if config.limits.limit is not None:
+        selected_videos = selected_videos[: config.limits.limit]
+    _print_split_links(selected_videos)
 
 
 async def _main(
@@ -342,6 +375,45 @@ def run(
             no_getnote=no_getnote,
             dry_run=dry_run,
             estimate_getnote=estimate_getnote,
+            part_selection=part_selection,
+        )
+    )
+
+
+@app.command("split-links")
+def split_links(
+    input_value: Annotated[
+        str,
+        typer.Argument(
+            help="Bilibili video, uploader, collection, or file input to expand into video URLs."
+        ),
+    ],
+    config_path: Annotated[
+        Path | None,
+        typer.Option("--config", "-c", help="Config YAML path."),
+    ] = None,
+    sort: Annotated[
+        SortMode,
+        typer.Option("--sort", help=SORT_HELP),
+    ] = "source",
+    limit: Annotated[
+        int | None,
+        typer.Option("--limit", min=1, help="After sorting max count."),
+    ] = None,
+    part_selection: Annotated[
+        PartSelectionMode | None,
+        typer.Option(
+            "--part-selection",
+            help="When a Bilibili video URL contains ?p=N, print selected part or all parts.",
+        ),
+    ] = None,
+) -> None:
+    asyncio.run(
+        _split_links(
+            input_value=input_value,
+            config_path=config_path,
+            sort=sort,
+            limit=limit,
             part_selection=part_selection,
         )
     )

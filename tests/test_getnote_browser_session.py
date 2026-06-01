@@ -61,6 +61,10 @@ class FakeLocator:
         self.page.action_timeouts.append(timeout)
         self.page.filled.append((self.name, value))
 
+    def press(self, key, timeout=None):
+        self.page.action_timeouts.append(timeout)
+        self.page.pressed.append((self.name, key))
+
 
 class FakePage:
     def __init__(self, download):
@@ -74,6 +78,7 @@ class FakePage:
         self.disabled = set()
         self.clicked = []
         self.filled = []
+        self.pressed = []
         self.urls = []
         self.load_states = []
         self.timeouts = []
@@ -227,6 +232,32 @@ def test_browser_session_omits_channel_when_auto_detects_no_existing_browser(
     session.export_markdown_for_url("https://www.bilibili.com/video/BV1")
 
     assert "channel" not in chromium.launch_kwargs
+
+
+def test_browser_session_presses_enter_when_submit_button_missing(tmp_path):
+    source = tmp_path / "source.md"
+    source.write_text("# exported", encoding="utf-8")
+    page = FakePage(FakeDownload(source))
+    page.available.remove("button:has-text('保存')")
+    context = FakeContext(page)
+    chromium = FakeChromium(context)
+    config = GetnoteWebConfig(
+        enabled=True,
+        user_data_dir=tmp_path / "profile",
+        download_dir=tmp_path / "downloads",
+        timeout_seconds=10,
+    )
+    session = GetnoteBrowserSession(
+        config,
+        playwright_factory=lambda: FakePlaywright(chromium),
+    )
+
+    session.export_markdown_for_url("https://www.bilibili.com/video/BV1")
+
+    assert (
+        "textarea[placeholder*='链接']",
+        "Enter",
+    ) in page.pressed
 
 
 def test_browser_session_fails_when_export_locator_missing(tmp_path):

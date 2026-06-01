@@ -161,7 +161,7 @@ class GetnoteBrowserSession:
                 link_input = self._wait_for_login_or_input(page, timeout_ms)
                 link_input.fill(url, timeout=timeout_ms)
 
-                self._submit_url(page, timeout_ms)
+                self._submit_url(page, link_input, timeout_ms)
                 self._wait_for_generation(page, timeout_ms)
                 return self._export_markdown(page, timeout_ms, target)
         except GetnoteWebBrowserError:
@@ -193,12 +193,11 @@ class GetnoteBrowserSession:
             poll_ms=5000,
         )
 
-    def _submit_url(self, page: object, timeout_ms: int) -> None:
+    def _submit_url(self, page: object, link_input: object, timeout_ms: int) -> None:
         submit = self._first_available_locator(page, SUBMIT_LOCATORS)
         if submit is None:
-            raise GetnoteWebBrowserError(
-                "Get笔记 Web browser automation failed: submit button not found"
-            )
+            link_input.press("Enter", timeout=timeout_ms)
+            return
         submit.click(timeout=timeout_ms)
 
     def _wait_for_generation(self, page: object, timeout_ms: int) -> None:

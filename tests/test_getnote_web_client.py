@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from mediamark.config import GetnoteWebConfig
 from mediamark.getnote.web_client import GetnoteWebClient
 from mediamark.models import VideoItem
@@ -60,3 +62,22 @@ def test_getnote_web_client_accepts_falsy_session(tmp_path):
 
     assert result.note.raw_markdown == "# Web Markdown"
     assert session.calls == ["https://www.bilibili.com/video/BV1xx411c7mD"]
+
+
+def test_getnote_web_client_respects_max_items_per_run(tmp_path):
+    first = tmp_path / "first.md"
+    first.write_text("# first", encoding="utf-8")
+    session = FakeSession(first)
+    client = GetnoteWebClient(
+        GetnoteWebConfig(
+            enabled=True,
+            user_data_dir=tmp_path / "profile",
+            max_items_per_run=1,
+        ),
+        session=session,
+    )
+
+    client.save_url(make_video())
+
+    with pytest.raises(RuntimeError, match="max_items_per_run=1"):
+        client.save_url(make_video())

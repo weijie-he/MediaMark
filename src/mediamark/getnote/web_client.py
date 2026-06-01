@@ -21,10 +21,17 @@ class GetnoteWebClient:
     ) -> None:
         self.config = config
         self.session = session if session is not None else GetnoteBrowserSession(config)
+        self.items_used = 0
 
     def save_url(self, video: VideoItem) -> GetnoteProfileResult:
+        next_count = self.items_used + 1
+        if next_count > self.config.max_items_per_run:
+            raise RuntimeError(
+                f"Get笔记 Web max_items_per_run={self.config.max_items_per_run} exceeded"
+            )
         markdown_path = self.session.export_markdown_for_url(video.url)
         markdown = read_markdown_download(markdown_path)
+        self.items_used = next_count
         return GetnoteProfileResult(
             note=NoteContent(raw_markdown=markdown),
             profile_name="web",

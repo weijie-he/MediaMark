@@ -308,6 +308,62 @@ async def test_process_records_getnote_provider_metadata(tmp_path):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("exception_name", "message", "expected_error_code"),
+    [
+        (
+            "GetnoteWebLoginRequired",
+            "login did not complete",
+            "getnote_web_login_required",
+        ),
+        (
+            "GetnoteWebGenerationTimeout",
+            "generation timed out",
+            "getnote_web_generation_timeout",
+        ),
+        (
+            "GetnoteWebExportNotFound",
+            "export missing",
+            "getnote_web_export_not_found",
+        ),
+        (
+            "GetnoteWebExportFailed",
+            "export failed",
+            "getnote_web_export_failed",
+        ),
+        (
+            "GetnoteWebBrowserError",
+            "browser automation failed",
+            "getnote_web_browser_error",
+        ),
+    ],
+)
+async def test_process_classifies_getnote_web_export_failure(
+    tmp_path, exception_name, message, expected_error_code
+):
+    import mediamark.getnote.browser_session as browser_session
+
+    exception_type = getattr(browser_session, exception_name)
+
+    class FailingWebClient:
+        def save_url(self, video):
+            raise exception_type(message)
+
+    config = make_config(tmp_path)
+    video = make_video("BV_WEB_FAIL", aid=1, cid=10)
+    bilibili = FakeBilibiliClient({(1, 10): None})
+    manifest = ManifestStore(tmp_path / "manifest.jsonl")
+    pipeline = Pipeline(config, bilibili=bilibili, getnote=FailingWebClient(), manifest=manifest)
+
+    results = await pipeline.process([video], sort="source", limit=None, skip_existing=False)
+
+    assert results[0].status == "failed"
+    assert results[0].error_code == expected_error_code
+    record = manifest.latest_records()["BV_WEB_FAIL:1"]
+    assert record["error_code"] == expected_error_code
+
+
+@pytest.mark.asyncio
 async def test_process_respects_video_allow_getnote_false(tmp_path):
     config = make_config(tmp_path)
     video = make_video()

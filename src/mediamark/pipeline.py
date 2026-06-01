@@ -122,6 +122,31 @@ def output_path_for(config: AppConfig, video: VideoItem) -> Path:
 
 
 def _classify_error(exc: Exception) -> ErrorCode:
+    try:
+        from mediamark.getnote.browser_session import (
+            GetnoteWebBrowserError,
+            GetnoteWebExportFailed,
+            GetnoteWebExportNotFound,
+            GetnoteWebGenerationTimeout,
+            GetnoteWebLoginRequired,
+        )
+        from mediamark.getnote.downloads import GetnoteWebExportError
+    except ImportError:
+        web_error_mappings: tuple[tuple[type[Exception], ErrorCode], ...] = ()
+    else:
+        web_error_mappings = (
+            (GetnoteWebLoginRequired, "getnote_web_login_required"),
+            (GetnoteWebGenerationTimeout, "getnote_web_generation_timeout"),
+            (GetnoteWebExportNotFound, "getnote_web_export_not_found"),
+            (GetnoteWebExportFailed, "getnote_web_export_failed"),
+            (GetnoteWebExportError, "getnote_web_export_failed"),
+            (GetnoteWebBrowserError, "getnote_web_browser_error"),
+        )
+
+    for exception_type, error_code in web_error_mappings:
+        if isinstance(exc, exception_type):
+            return error_code
+
     text = str(exc).lower()
     if "disabled" in text:
         return "getnote_disabled"

@@ -1,3 +1,5 @@
+import os
+import shutil
 from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
@@ -24,6 +26,39 @@ MARKDOWN_EXPORT_LOCATORS = [
     "text=导出 Markdown",
     "text=下载 Markdown",
 ]
+BROWSER_CHANNEL_PRIORITY = ("chrome", "msedge", "chromium")
+BROWSER_EXECUTABLES = {
+    "chrome": ("google-chrome", "google-chrome-stable", "chrome"),
+    "msedge": ("microsoft-edge", "microsoft-edge-stable", "msedge"),
+    "chromium": ("chromium", "chromium-browser"),
+}
+
+
+def _program_files_path(env_name: str, relative_path: str) -> Path | None:
+    root = os.environ.get(env_name)
+    if not root:
+        return None
+    return Path(root) / relative_path
+
+
+BROWSER_APP_PATHS = {
+    "chrome": (
+        Path("/Applications/Google Chrome.app"),
+        Path.home() / "Applications/Google Chrome.app",
+        _program_files_path("PROGRAMFILES", "Google/Chrome/Application/chrome.exe"),
+        _program_files_path("PROGRAMFILES(X86)", "Google/Chrome/Application/chrome.exe"),
+    ),
+    "msedge": (
+        Path("/Applications/Microsoft Edge.app"),
+        Path.home() / "Applications/Microsoft Edge.app",
+        _program_files_path("PROGRAMFILES", "Microsoft/Edge/Application/msedge.exe"),
+        _program_files_path("PROGRAMFILES(X86)", "Microsoft/Edge/Application/msedge.exe"),
+    ),
+    "chromium": (
+        Path("/Applications/Chromium.app"),
+        Path.home() / "Applications/Chromium.app",
+    ),
+}
 
 
 class GetnoteWebBrowserError(RuntimeError):
@@ -57,6 +92,23 @@ def _default_playwright_factory() -> object:
     return sync_playwright()
 
 
+def _browser_channel_available(channel: str) -> bool:
+    return any(
+        path is not None and path.exists()
+        for path in BROWSER_APP_PATHS.get(channel, ())
+    ) or any(
+        shutil.which(executable) is not None
+        for executable in BROWSER_EXECUTABLES.get(channel, ())
+    )
+
+
+def detect_browser_channel() -> str | None:
+    for channel in BROWSER_CHANNEL_PRIORITY:
+        if _browser_channel_available(channel):
+            return channel
+    return None
+
+
 class GetnoteBrowserSession:
     def __init__(
         self,
@@ -77,17 +129,26 @@ class GetnoteBrowserSession:
 
         try:
             with self.playwright_factory() as playwright:
-                context = playwright.chromium.launch_persistent_context(
-                    str(user_data_dir),
-                    headless=self.config.headless,
-                    channel="chrome",
-                    accept_downloads=True,
-                    downloads_path=str(download_dir),
-                    args=[
+                launch_kwargs = {
+                    "headless": self.config.headless,
+                    "accept_downloads": True,
+                    "downloads_path": str(download_dir),
+                    "args": [
                         "--no-sandbox",
                         "--disable-setuid-sandbox",
                         "--disable-popup-blocking",
                     ],
+                }
+                browser_channel = (
+                    detect_browser_channel()
+                    if self.config.browser_channel == "auto"
+                    else self.config.browser_channel
+                )
+                if browser_channel is not None:
+                    launch_kwargs["channel"] = browser_channel
+                context = playwright.chromium.launch_persistent_context(
+                    str(user_data_dir),
+                    **launch_kwargs,
                 )
                 page = context.new_page()
                 page.set_default_timeout(timeout_ms)

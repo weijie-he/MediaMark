@@ -32,6 +32,8 @@ getnote:
     enabled: false
     user_data_dir: "~/.config/mediamark/getnote-web-chrome"
     headless: false
+    # auto: use an existing browser if found. Supported manual values: chrome, msedge, chromium.
+    browser_channel: "auto"
     timeout_seconds: 600
     max_items_per_run: 5
     download_dir: "~/.cache/mediamark/getnote-web-downloads"

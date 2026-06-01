@@ -66,7 +66,7 @@ getnote auth
 getnote save <url> -o json
 ```
 
-免费账号可以改用 Web 兜底。请确保本机已安装 Google Chrome，并在第一次运行时保持 `headless: false` 以便完成登录：
+免费账号可以改用 Web 兜底。请确保本机已有 Chrome、Microsoft Edge 或 Chromium 之一；MediaMark 默认会自动探测已有浏览器，不会主动安装浏览器。第一次运行时建议保持 `headless: false` 以便完成登录：
 
 ```yaml
 getnote:
@@ -76,6 +76,7 @@ getnote:
     enabled: true
     user_data_dir: "~/.config/mediamark/getnote-web-chrome"
     headless: false
+    browser_channel: "auto"
     timeout_seconds: 600
     max_items_per_run: 5
 ```
@@ -90,11 +91,12 @@ getnote:
     enabled: true
     user_data_dir: "~/.config/mediamark/getnote-web-chrome"
     headless: false
+    browser_channel: "auto"
     timeout_seconds: 600
     max_items_per_run: 5
 ```
 
-Web 兜底会自动粘贴视频链接、等待 Get笔记生成，并点击页面中的 Markdown 导出入口。`web.max_items_per_run` 用来限制本次运行最多通过浏览器处理多少条，避免免费额度被一次性用完。
+Web 兜底会自动粘贴视频链接、等待 Get笔记生成，并点击页面中的 Markdown 导出入口。`web.browser_channel` 默认为 `auto`，会按 Chrome、Microsoft Edge、Chromium 的顺序使用本机已有浏览器；也可以手动设为 `chrome`、`msedge` 或 `chromium`。`web.max_items_per_run` 用来限制本次运行最多通过浏览器处理多少条，避免免费额度被一次性用完。
 
 如果在 agent 工作流中使用本项目，也可以安装或启用对应的 Get笔记 skills。skills 可以帮助 agent 理解 Get笔记 CLI 和 JSON 输出；额度控制仍然依赖 `--dry-run`、`--no-getnote`、小批量验证和账号额度检查。
 
@@ -169,6 +171,7 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 - `getnote.web.enabled`：是否启用 Get笔记 Web 浏览器自动化。
 - `getnote.web.user_data_dir`：浏览器登录态目录，建议为 MediaMark 单独设置。
 - `getnote.web.headless`：是否无头运行。首次登录建议保持 `false`。
+- `getnote.web.browser_channel`：浏览器选择方式。`auto` 会优先使用本机已有浏览器；也可手动指定 `chrome`、`msedge` 或 `chromium`。
 - `getnote.web.max_items_per_run`：本次运行最多通过 Web 兜底处理多少条。
 - `getnote.profiles`：可选的 Get笔记 profile 列表，每个 profile 支持 `name`、`enabled`、`cli_path`、`env` 和独立 `budget`。
 - `output.directory_template`：可选的输出子目录模板，例如 `{platform}/{collection}`。

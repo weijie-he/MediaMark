@@ -106,6 +106,7 @@ getnote:
     enabled: true
     user_data_dir: "~/Library/Application Support/MediaMark/getnote-web"
     headless: false
+    browser_channel: msedge
     timeout_seconds: 300
     max_items_per_run: 3
     download_dir: "~/.cache/mediamark/getnote-web-downloads"
@@ -121,6 +122,7 @@ getnote:
         "Library/Application Support/MediaMark/getnote-web"
     )
     assert config.getnote.web.headless is False
+    assert config.getnote.web.browser_channel == "msedge"
     assert config.getnote.web.timeout_seconds == 300
     assert config.getnote.web.max_items_per_run == 3
     assert str(config.getnote.web.download_dir).endswith(

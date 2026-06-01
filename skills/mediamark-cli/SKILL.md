@@ -50,7 +50,7 @@ MediaMark has three Get笔记 fallback modes:
 - `web`: use browser automation only. Prefer this for free accounts that can manually generate notes on Get笔记 Web.
 - `auto`: try CLI first, then use Web only when the CLI reports a membership-only limitation.
 
-For Web fallback, require a local Google Chrome install and a persistent profile directory. First login should normally run with `headless: false`:
+For Web fallback, require an existing local Chrome, Microsoft Edge, or Chromium install and a persistent profile directory. MediaMark defaults to `browser_channel: auto` and does not install browsers automatically. First login should normally run with `headless: false`:
 
 ```yaml
 getnote:
@@ -60,11 +60,12 @@ getnote:
     enabled: true
     user_data_dir: "~/.config/mediamark/getnote-web-chrome"
     headless: false
+    browser_channel: "auto"
     timeout_seconds: 600
     max_items_per_run: 5
 ```
 
-The Web flow opens Get笔记, pastes the media URL, waits for generation, and uses the page's Markdown export action. Keep `max_items_per_run` low for free accounts.
+The Web flow opens Get笔记, pastes the media URL, waits for generation, and uses the page's Markdown export action. `browser_channel: auto` tries existing Chrome, Microsoft Edge, then Chromium; set `chrome`, `msedge`, or `chromium` manually when needed. Keep `max_items_per_run` low for free accounts.
 
 If Codex has a Get笔记-related skill available, use it before debugging Get笔记 CLI behavior.
 
@@ -203,6 +204,7 @@ getnote:
     enabled: true
     user_data_dir: "~/.config/mediamark/getnote-web-chrome"
     headless: false
+    browser_channel: "auto"
     timeout_seconds: 600
     max_items_per_run: 5
 ```
@@ -217,6 +219,7 @@ getnote:
     enabled: true
     user_data_dir: "~/.config/mediamark/getnote-web-chrome"
     headless: false
+    browser_channel: "auto"
     max_items_per_run: 5
 ```
 

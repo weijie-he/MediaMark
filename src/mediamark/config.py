@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from mediamark.models import PartSelectionMode
 
 GetnoteFallbackMode = Literal["cli", "web", "auto"]
+GetnoteBrowserChannel = Literal["auto", "chrome", "msedge", "chromium"]
 
 
 def expand_path(value: Any) -> Path | None:
@@ -63,6 +64,7 @@ class GetnoteWebConfig(BaseModel):
     enabled: bool = False
     user_data_dir: Path = Path("~/.config/mediamark/getnote-web-chrome")
     headless: bool = False
+    browser_channel: GetnoteBrowserChannel = "auto"
     timeout_seconds: int = Field(default=600, ge=1)
     max_items_per_run: int = Field(default=5, ge=1)
     download_dir: Path = Path("~/.cache/mediamark/getnote-web-downloads")

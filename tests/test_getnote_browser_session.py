@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from mediamark.config import GetnoteWebConfig
+import mediamark.getnote.browser_session as browser_session
 from mediamark.getnote.browser_session import (
     GetnoteBrowserSession,
     GetnoteWebExportFailed,
@@ -147,6 +148,7 @@ def test_browser_session_exports_markdown_with_fake_playwright(tmp_path):
         user_data_dir=tmp_path / "profile",
         download_dir=tmp_path / "downloads",
         timeout_seconds=10,
+        browser_channel="msedge",
     )
     session = GetnoteBrowserSession(
         config,
@@ -166,11 +168,64 @@ def test_browser_session_exports_markdown_with_fake_playwright(tmp_path):
     assert "button:has-text('保存')" in page.clicked
     assert "text=Markdown" in page.clicked
     assert chromium.launch_kwargs["headless"] is False
+    assert chromium.launch_kwargs["channel"] == "msedge"
     assert chromium.launch_kwargs["accept_downloads"] is True
     assert page.default_timeout == 10000
     assert page.action_timeouts == [10000, 10000, 10000]
     assert "networkidle" not in page.load_states
     assert context.closed is True
+
+
+def test_browser_session_auto_uses_detected_existing_browser_channel(
+    tmp_path, monkeypatch
+):
+    source = tmp_path / "source.md"
+    source.write_text("# exported", encoding="utf-8")
+    page = FakePage(FakeDownload(source))
+    context = FakeContext(page)
+    chromium = FakeChromium(context)
+    monkeypatch.setattr(
+        browser_session,
+        "detect_browser_channel",
+        lambda: "msedge",
+    )
+    config = GetnoteWebConfig(
+        enabled=True,
+        user_data_dir=tmp_path / "profile",
+        download_dir=tmp_path / "downloads",
+    )
+    session = GetnoteBrowserSession(
+        config,
+        playwright_factory=lambda: FakePlaywright(chromium),
+    )
+
+    session.export_markdown_for_url("https://www.bilibili.com/video/BV1")
+
+    assert chromium.launch_kwargs["channel"] == "msedge"
+
+
+def test_browser_session_omits_channel_when_auto_detects_no_existing_browser(
+    tmp_path, monkeypatch
+):
+    source = tmp_path / "source.md"
+    source.write_text("# exported", encoding="utf-8")
+    page = FakePage(FakeDownload(source))
+    context = FakeContext(page)
+    chromium = FakeChromium(context)
+    monkeypatch.setattr(browser_session, "detect_browser_channel", lambda: None)
+    config = GetnoteWebConfig(
+        enabled=True,
+        user_data_dir=tmp_path / "profile",
+        download_dir=tmp_path / "downloads",
+    )
+    session = GetnoteBrowserSession(
+        config,
+        playwright_factory=lambda: FakePlaywright(chromium),
+    )
+
+    session.export_markdown_for_url("https://www.bilibili.com/video/BV1")
+
+    assert "channel" not in chromium.launch_kwargs
 
 
 def test_browser_session_fails_when_export_locator_missing(tmp_path):

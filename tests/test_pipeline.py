@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -64,6 +65,19 @@ class FakeGetnoteProviderClient:
             profile_name="default",
             provider_name="web",
         )
+
+
+class EventLoopSensitiveGetnoteClient:
+    def __init__(self):
+        self.calls: list[str] = []
+
+    def save_url(self, video: VideoItem) -> NoteContent:
+        self.calls.append(video.url)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return NoteContent(summary="线程内摘要", transcript_text="线程内正文")
+        raise RuntimeError("getnote client ran inside an asyncio event loop")
 
 
 def make_config(tmp_path: Path, getnote_enabled: bool = True) -> AppConfig:
@@ -246,6 +260,27 @@ async def test_process_uses_getnote_fallback_when_subtitle_missing(tmp_path):
     assert getnote.calls == [video.url]
     assert results[0].path is not None
     assert "备用摘要" in results[0].path.read_text(encoding="utf-8")
+
+
+@pytest.mark.asyncio
+async def test_process_runs_getnote_client_outside_asyncio_event_loop(tmp_path):
+    config = make_config(tmp_path)
+    video = make_video()
+    bilibili = FakeBilibiliClient({(123, 456): None})
+    getnote = EventLoopSensitiveGetnoteClient()
+    pipeline = Pipeline(
+        config,
+        bilibili=bilibili,
+        getnote=getnote,
+        manifest=ManifestStore(config.manifest_path),
+    )
+
+    results = await pipeline.process([video], sort="source", limit=None, skip_existing=False)
+
+    assert results[0].status == "done"
+    assert getnote.calls == [video.url]
+    assert results[0].path is not None
+    assert "线程内摘要" in results[0].path.read_text(encoding="utf-8")
 
 
 @pytest.mark.asyncio

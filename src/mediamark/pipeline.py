@@ -1,3 +1,4 @@
+import asyncio
 from pathlib import Path
 from typing import Protocol
 
@@ -329,7 +330,8 @@ class Pipeline:
             if not self.config.getnote.enabled or self.getnote is None:
                 raise RuntimeError("No Bilibili subtitle and Get笔记 fallback is disabled")
             self.getnote_budget.consume(video)
-            note, profile_name, provider_name = _note_and_profile(self.getnote.save_url(video))
+            getnote_result = await asyncio.to_thread(self.getnote.save_url, video)
+            note, profile_name, provider_name = _note_and_profile(getnote_result)
             source = "getnote"
             content_level = "note_plus_transcript"
 

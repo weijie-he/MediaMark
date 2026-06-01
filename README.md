@@ -6,6 +6,8 @@ v0.4 开始加入平台 Adapter 架构，并实验性支持抖音单链接。抖
 
 v0.5 继续增强多平台输出：实验性支持小红书单链接，增加输出目录模板、运行内去重、collection index，以及更适合 Obsidian 的 frontmatter。
 
+v0.6 加入 Get笔记 Web 兜底：会员账号继续走 Get笔记 CLI；免费账号可以走浏览器自动化，自动粘贴链接、等待生成，并通过页面里的 Markdown 导出入口保存结果。
+
 v1 的行为是保守的：
 
 - 优先尝试 B 站原字幕或 AI 字幕。
@@ -45,9 +47,13 @@ uv run mediamark doctor
 
 ## Get笔记兜底
 
-Get笔记 CLI 是外部依赖，不会被打包进 MediaMark。
+MediaMark 支持三种 Get笔记兜底模式：
 
-请单独安装并登录 Get笔记 CLI：
+- `cli`：调用外部 Get笔记 CLI，适合已开通 Get笔记会员或 CLI 可用的账号。
+- `web`：使用浏览器自动化打开 Get笔记网页，适合免费账号。首次运行会打开一个独立 Chrome 登录态，登录后会复用 `user_data_dir`。
+- `auto`：先尝试 CLI；如果 CLI 明确返回会员限制，再切换到 Web。
+
+Get笔记 CLI 是外部依赖，不会被打包进 MediaMark。会员账号请单独安装并登录 Get笔记 CLI：
 
 ```bash
 npm install -g @getnote/cli
@@ -59,6 +65,36 @@ getnote auth
 ```bash
 getnote save <url> -o json
 ```
+
+免费账号可以改用 Web 兜底。请确保本机已安装 Google Chrome，并在第一次运行时保持 `headless: false` 以便完成登录：
+
+```yaml
+getnote:
+  enabled: true
+  fallback_mode: "web"
+  web:
+    enabled: true
+    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
+    headless: false
+    timeout_seconds: 600
+    max_items_per_run: 5
+```
+
+如果希望会员账号优先走 CLI，只有遇到会员限制时才自动切到免费账号 Web 流程，可以使用：
+
+```yaml
+getnote:
+  enabled: true
+  fallback_mode: "auto"
+  web:
+    enabled: true
+    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
+    headless: false
+    timeout_seconds: 600
+    max_items_per_run: 5
+```
+
+Web 兜底会自动粘贴视频链接、等待 Get笔记生成，并点击页面中的 Markdown 导出入口。`web.max_items_per_run` 用来限制本次运行最多通过浏览器处理多少条，避免免费额度被一次性用完。
 
 如果在 agent 工作流中使用本项目，也可以安装或启用对应的 Get笔记 skills。skills 可以帮助 agent 理解 Get笔记 CLI 和 JSON 输出；额度控制仍然依赖 `--dry-run`、`--no-getnote`、小批量验证和账号额度检查。
 
@@ -126,9 +162,14 @@ uv run mediamark run "BV1xx411c7mD" --config config.yaml
 - `bilibili.request_sleep_seconds`：B 站 API 请求后的等待时间。
 - `bilibili.part_selection`：视频 URL 包含 `?p=N` 时的处理方式，`selected` 只处理指定分 P，`all` 处理全部分 P。
 - `getnote.enabled`：是否启用 Get笔记兜底。
+- `getnote.fallback_mode`：Get笔记兜底模式，`cli` 只用 CLI，`web` 只用浏览器自动化，`auto` 先 CLI、遇到会员限制再切到 Web。
 - `getnote.cli_path`：外部 `getnote` CLI 的可执行文件路径。
 - `getnote.budget.max_fallbacks_per_run`：本次运行最多调用多少次 Get笔记。
 - `getnote.budget.max_minutes_per_run`：本次运行最多使用 Get笔记兜底多少分钟视频。
+- `getnote.web.enabled`：是否启用 Get笔记 Web 浏览器自动化。
+- `getnote.web.user_data_dir`：浏览器登录态目录，建议为 MediaMark 单独设置。
+- `getnote.web.headless`：是否无头运行。首次登录建议保持 `false`。
+- `getnote.web.max_items_per_run`：本次运行最多通过 Web 兜底处理多少条。
 - `getnote.profiles`：可选的 Get笔记 profile 列表，每个 profile 支持 `name`、`enabled`、`cli_path`、`env` 和独立 `budget`。
 - `output.directory_template`：可选的输出子目录模板，例如 `{platform}/{collection}`。
 - `archive.dedupe`：是否在同一运行中跳过重复内容。

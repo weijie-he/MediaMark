@@ -11,7 +11,7 @@ def test_project_exposes_mediamark_package_and_cli_entrypoint():
 
     package = importlib.import_module("mediamark")
     assert package.__version__ == pyproject["project"]["version"]
-    assert package.__version__ == "0.5.0"
+    assert package.__version__ == "0.6.0"
 
 
 def test_package_declares_playwright_dependency():

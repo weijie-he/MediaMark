@@ -36,13 +36,35 @@ If `uv run mediamark` is not available, use the local environment:
 .venv/bin/python -m mediamark.cli --help
 ```
 
-Get笔记 is an external dependency. For fallback flows, make sure the user has installed and authenticated it:
+Get笔记 CLI is an external dependency. For `cli` or `auto` CLI-first flows, make sure the user has installed and authenticated it:
 
 ```bash
 npm install -g @getnote/cli
 getnote auth
 getnote save "https://www.bilibili.com/video/BV..." -o json
 ```
+
+MediaMark has three Get笔记 fallback modes:
+
+- `cli`: use the external Get笔记 CLI only. Prefer this for paid/member accounts.
+- `web`: use browser automation only. Prefer this for free accounts that can manually generate notes on Get笔记 Web.
+- `auto`: try CLI first, then use Web only when the CLI reports a membership-only limitation.
+
+For Web fallback, require a local Google Chrome install and a persistent profile directory. First login should normally run with `headless: false`:
+
+```yaml
+getnote:
+  enabled: true
+  fallback_mode: "web"
+  web:
+    enabled: true
+    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
+    headless: false
+    timeout_seconds: 600
+    max_items_per_run: 5
+```
+
+The Web flow opens Get笔记, pastes the media URL, waits for generation, and uses the page's Markdown export action. Keep `max_items_per_run` low for free accounts.
 
 If Codex has a Get笔记-related skill available, use it before debugging Get笔记 CLI behavior.
 
@@ -169,6 +191,33 @@ getnote:
   budget:
     max_fallbacks_per_run: 20
     max_minutes_per_run: 120
+```
+
+Use Get笔记 Web fallback for free accounts:
+
+```yaml
+getnote:
+  enabled: true
+  fallback_mode: "web"
+  web:
+    enabled: true
+    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
+    headless: false
+    timeout_seconds: 600
+    max_items_per_run: 5
+```
+
+Use CLI first and Web only for membership-only CLI failures:
+
+```yaml
+getnote:
+  enabled: true
+  fallback_mode: "auto"
+  web:
+    enabled: true
+    user_data_dir: "~/.config/mediamark/getnote-web-chrome"
+    headless: false
+    max_items_per_run: 5
 ```
 
 Use multiple Get笔记 profiles:

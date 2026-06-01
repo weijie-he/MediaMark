@@ -21,7 +21,7 @@ bilibili:
 
 getnote:
   enabled: true
-  # cli: only use Get笔记 CLI/OpenAPI. web: only use browser automation. auto: CLI first, Web on not_member.
+  # cli: only use Get笔记 CLI. web: only use browser automation. auto: CLI first, Web on membership-only CLI failures.
   fallback_mode: "cli"
   cli_path: "getnote"
   budget:

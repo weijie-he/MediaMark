@@ -56,6 +56,8 @@ class FakeLocator:
     def click(self, timeout=None):
         self.page.action_timeouts.append(timeout)
         self.page.clicked.append(self.name)
+        for selector in self.page.reveal_on_click.get(self.name, set()):
+            self.page.available.add(selector)
 
     def fill(self, value, timeout=None):
         self.page.action_timeouts.append(timeout)
@@ -79,6 +81,7 @@ class FakePage:
         self.clicked = []
         self.filled = []
         self.pressed = []
+        self.reveal_on_click = {}
         self.urls = []
         self.load_states = []
         self.timeouts = []
@@ -258,6 +261,37 @@ def test_browser_session_presses_enter_when_submit_button_missing(tmp_path):
         "textarea[placeholder*='链接']",
         "Enter",
     ) in page.pressed
+
+
+def test_browser_session_clicks_add_link_before_filling_url(tmp_path):
+    source = tmp_path / "source.md"
+    source.write_text("# exported", encoding="utf-8")
+    page = FakePage(FakeDownload(source))
+    page.available.remove("textarea[placeholder*='链接']")
+    page.available.add("button:has-text('添加链接')")
+    page.reveal_on_click["button:has-text('添加链接')"] = {
+        "textarea[placeholder*='链接']"
+    }
+    context = FakeContext(page)
+    chromium = FakeChromium(context)
+    config = GetnoteWebConfig(
+        enabled=True,
+        user_data_dir=tmp_path / "profile",
+        download_dir=tmp_path / "downloads",
+        timeout_seconds=10,
+    )
+    session = GetnoteBrowserSession(
+        config,
+        playwright_factory=lambda: FakePlaywright(chromium),
+    )
+
+    session.export_markdown_for_url("https://www.bilibili.com/video/BV1")
+
+    assert "button:has-text('添加链接')" in page.clicked
+    assert (
+        "textarea[placeholder*='链接']",
+        "https://www.bilibili.com/video/BV1",
+    ) in page.filled
 
 
 def test_browser_session_fails_when_export_locator_missing(tmp_path):

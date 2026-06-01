@@ -15,6 +15,10 @@ LINK_INPUT_LOCATORS = [
     "input[placeholder*='链接']",
     "textarea",
 ]
+ADD_LINK_LOCATORS = [
+    "button:has-text('添加链接')",
+    "text=添加链接",
+]
 SUBMIT_LOCATORS = [
     "button:has-text('保存')",
     "button:has-text('生成')",
@@ -158,7 +162,7 @@ class GetnoteBrowserSession:
                     timeout=timeout_ms,
                 )
 
-                link_input = self._wait_for_login_or_input(page, timeout_ms)
+                link_input = self._open_link_input(page, timeout_ms)
                 link_input.fill(url, timeout=timeout_ms)
 
                 self._submit_url(page, link_input, timeout_ms)
@@ -177,12 +181,34 @@ class GetnoteBrowserSession:
                 except Exception:
                     pass
 
-    def _wait_for_login_or_input(self, page: object, timeout_ms: int) -> object:
+    def _open_link_input(self, page: object, timeout_ms: int) -> object:
         link_input = self._first_available_locator(page, LINK_INPUT_LOCATORS)
         if link_input is not None:
             return link_input
 
-        print("Get笔记 Web 需要登录：请在打开的 Chrome 窗口完成登录。")
+        add_link = self._first_available_locator(page, ADD_LINK_LOCATORS)
+        if add_link is not None:
+            add_link.click(timeout=timeout_ms)
+            return self._wait_for_link_input(page, timeout_ms)
+
+        print("Get笔记 Web 需要登录：请在打开的浏览器窗口完成登录。")
+        add_link = self._wait_for_locator(
+            page,
+            ADD_LINK_LOCATORS,
+            timeout_ms,
+            GetnoteWebLoginRequired(
+                "Get笔记 Web login or add-link action was not available"
+            ),
+            poll_ms=5000,
+        )
+        add_link.click(timeout=timeout_ms)
+        return self._wait_for_link_input(page, timeout_ms)
+
+    def _wait_for_link_input(self, page: object, timeout_ms: int) -> object:
+        link_input = self._first_available_locator(page, LINK_INPUT_LOCATORS)
+        if link_input is not None:
+            return link_input
+
         return self._wait_for_locator(
             page,
             LINK_INPUT_LOCATORS,

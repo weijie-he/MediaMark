@@ -8,6 +8,10 @@ from mediamark.getnote.profiles import GetnoteProfileResult
 from mediamark.models import NoteContent, VideoItem
 
 
+class GetnoteWebQuotaExceeded(RuntimeError):
+    pass
+
+
 class GetnoteWebSession(Protocol):
     def export_markdown_for_url(self, url: str) -> Path:
         ...
@@ -26,7 +30,7 @@ class GetnoteWebClient:
     def save_url(self, video: VideoItem) -> GetnoteProfileResult:
         next_count = self.items_used + 1
         if next_count > self.config.max_items_per_run:
-            raise RuntimeError(
+            raise GetnoteWebQuotaExceeded(
                 f"Get笔记 Web max_items_per_run={self.config.max_items_per_run} exceeded"
             )
         markdown_path = self.session.export_markdown_for_url(video.url)

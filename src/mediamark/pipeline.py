@@ -6,6 +6,15 @@ from slugify import slugify
 from mediamark.config import AppConfig
 from mediamark.collections import write_collection_indexes
 from mediamark.getnote.budget import GetnoteBudget, _duration_minutes
+from mediamark.getnote.browser_session import (
+    GetnoteWebBrowserError,
+    GetnoteWebExportFailed,
+    GetnoteWebExportNotFound,
+    GetnoteWebGenerationTimeout,
+    GetnoteWebLoginRequired,
+)
+from mediamark.getnote.downloads import GetnoteWebExportError
+from mediamark.getnote.web_client import GetnoteWebQuotaExceeded
 from mediamark.markdown.renderer import render_markdown
 from mediamark.models import (
     ErrorCode,
@@ -122,28 +131,15 @@ def output_path_for(config: AppConfig, video: VideoItem) -> Path:
 
 
 def _classify_error(exc: Exception) -> ErrorCode:
-    try:
-        from mediamark.getnote.browser_session import (
-            GetnoteWebBrowserError,
-            GetnoteWebExportFailed,
-            GetnoteWebExportNotFound,
-            GetnoteWebGenerationTimeout,
-            GetnoteWebLoginRequired,
-        )
-        from mediamark.getnote.downloads import GetnoteWebExportError
-    except ImportError:
-        web_error_mappings: tuple[tuple[type[Exception], ErrorCode], ...] = ()
-    else:
-        web_error_mappings = (
-            (GetnoteWebLoginRequired, "getnote_web_login_required"),
-            (GetnoteWebGenerationTimeout, "getnote_web_generation_timeout"),
-            (GetnoteWebExportNotFound, "getnote_web_export_not_found"),
-            (GetnoteWebExportFailed, "getnote_web_export_failed"),
-            (GetnoteWebExportError, "getnote_web_export_failed"),
-            (GetnoteWebBrowserError, "getnote_web_browser_error"),
-        )
-
-    for exception_type, error_code in web_error_mappings:
+    for exception_type, error_code in (
+        (GetnoteWebLoginRequired, "getnote_web_login_required"),
+        (GetnoteWebGenerationTimeout, "getnote_web_generation_timeout"),
+        (GetnoteWebExportNotFound, "getnote_web_export_not_found"),
+        (GetnoteWebExportFailed, "getnote_web_export_failed"),
+        (GetnoteWebExportError, "getnote_web_export_failed"),
+        (GetnoteWebQuotaExceeded, "getnote_quota_exceeded"),
+        (GetnoteWebBrowserError, "getnote_web_browser_error"),
+    ):
         if isinstance(exc, exception_type):
             return error_code
 

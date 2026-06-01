@@ -309,41 +309,58 @@ async def test_process_records_getnote_provider_metadata(tmp_path):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("exception_name", "message", "expected_error_code"),
+    ("module_name", "exception_name", "message", "expected_error_code"),
     [
         (
+            "mediamark.getnote.browser_session",
             "GetnoteWebLoginRequired",
             "login did not complete",
             "getnote_web_login_required",
         ),
         (
+            "mediamark.getnote.browser_session",
             "GetnoteWebGenerationTimeout",
             "generation timed out",
             "getnote_web_generation_timeout",
         ),
         (
+            "mediamark.getnote.browser_session",
             "GetnoteWebExportNotFound",
             "export missing",
             "getnote_web_export_not_found",
         ),
         (
+            "mediamark.getnote.browser_session",
             "GetnoteWebExportFailed",
             "export failed",
             "getnote_web_export_failed",
         ),
         (
+            "mediamark.getnote.browser_session",
             "GetnoteWebBrowserError",
             "browser automation failed",
             "getnote_web_browser_error",
         ),
+        (
+            "mediamark.getnote.downloads",
+            "GetnoteWebExportError",
+            "downloaded markdown is empty",
+            "getnote_web_export_failed",
+        ),
+        (
+            "mediamark.getnote.web_client",
+            "GetnoteWebQuotaExceeded",
+            "max_items_per_run=1 exceeded",
+            "getnote_quota_exceeded",
+        ),
     ],
 )
 async def test_process_classifies_getnote_web_export_failure(
-    tmp_path, exception_name, message, expected_error_code
+    tmp_path, module_name, exception_name, message, expected_error_code
 ):
-    import mediamark.getnote.browser_session as browser_session
+    import importlib
 
-    exception_type = getattr(browser_session, exception_name)
+    exception_type = getattr(importlib.import_module(module_name), exception_name)
 
     class FailingWebClient:
         def save_url(self, video):
